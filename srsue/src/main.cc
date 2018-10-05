@@ -148,14 +148,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
      "automatically starts an mbms service of the number given")
 
-    ("expert.phy.worker_cpu_mask",
-     bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
-     "cpu bit mask (eg 255 = 1111 1111)")
-
-    ("expert.phy.sync_cpu_affinity",
-     bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(-1),
-     "index of the core used by the sync thread")
-
     ("expert.metrics_period_secs",
      bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
      "Periodicity for metrics in seconds")
@@ -174,146 +166,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("expert.print_buffer_state",
      bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
-     "Prints on the console the buffer state every 10 seconds")
-
-    ("expert.rssi_sensor_enabled",
-     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
-     "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
-
-    ("expert.rx_gain_offset",
-     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(62),
-     "RX Gain offset to add to rx_gain to correct RSRP value")
-
-      ("expert.prach_gain",
-     bpo::value<float>(&args->expert.phy.prach_gain)->default_value(-1.0),
-     "Disable PRACH power control")
-
-    ("expert.cqi_max",
-     bpo::value<int>(&args->expert.phy.cqi_max)->default_value(15),
-     "Upper bound on the maximum CQI to be reported. Default 15.")
-
-    ("expert.cqi_fixed",
-     bpo::value<int>(&args->expert.phy.cqi_fixed)->default_value(-1),
-     "Fixes the reported CQI to a constant value. Default disabled.")
-
-    ("expert.sfo_correct_period",
-     bpo::value<uint32_t>(&args->expert.phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
-     "Period in ms to correct sample time")
-
-    ("expert.sfo_emma",
-     bpo::value<float>(&args->expert.phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
-     "EMA coefficient to average sample offsets used to compute SFO")
-
-    ("expert.snr_ema_coeff",
-     bpo::value<float>(&args->expert.phy.snr_ema_coeff)->default_value(0.1),
-     "Sets the SNR exponential moving average coefficient (Default 0.1)")
-
-    ("expert.snr_estim_alg",
-     bpo::value<string>(&args->expert.phy.snr_estim_alg)->default_value("refs"),
-     "Sets the noise estimation algorithm. (Default refs)")
-
-    ("expert.pdsch_max_its",
-     bpo::value<int>(&args->expert.phy.pdsch_max_its)->default_value(4),
-     "Maximum number of turbo decoder iterations")
-
-    ("expert.attach_enable_64qam",
-     bpo::value<bool>(&args->expert.phy.attach_enable_64qam)->default_value(false),
-     "PUSCH 64QAM modulation before attachment")
-
-    ("expert.nof_phy_threads",
-     bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(2),
-     "Number of PHY threads")
-
-    ("expert.equalizer_mode",
-     bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"),
-     "Equalizer mode")
-
-    ("expert.intra_freq_meas_len_ms",
-       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_len_ms)->default_value(20),
-       "Duration of the intra-frequency neighbour cell measurement in ms.")
-
-    ("expert.intra_freq_meas_period_ms",
-       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_period_ms)->default_value(200),
-       "Period of intra-frequency neighbour cell measurement in ms. Maximum as per 3GPP is 200 ms.")
-
-    ("expert.cfo_is_doppler",
-       bpo::value<bool>(&args->expert.phy.cfo_is_doppler)->default_value(false),
-       "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
-        "to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.")
-
-    ("expert.cfo_integer_enabled",
-     bpo::value<bool>(&args->expert.phy.cfo_integer_enabled)->default_value(false),
-     "Enables integer CFO estimation and correction.")
-
-    ("expert.cfo_correct_tol_hz",
-     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(1.0),
-     "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
-
-    ("expert.cfo_pss_ema",
-     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
-     "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
-
-    ("expert.cfo_ref_mask",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
-     "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
-
-    ("expert.cfo_loop_bw_pss",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
-     "CFO feedback loop bandwidth for samples from PSS")
-
-    ("expert.cfo_loop_bw_ref",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
-     "CFO feedback loop bandwidth for samples from RS")
-
-    ("expert.cfo_loop_pss_tol",
-     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
-     "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
-       "and RS estimations are used instead (when available)")
-
-    ("expert.cfo_loop_ref_min",
-     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
-     "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
-
-    ("expert.cfo_loop_pss_conv",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
-     "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
-
-    ("expert.sic_pss_enabled",
-     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(false),
-     "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
-
-    ("expert.average_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
-     "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
-
-    ("expert.estimator_fil_auto",
-     bpo::value<bool>(&args->expert.phy.estimator_fil_auto)->default_value(false),
-     "The channel estimator smooths the channel estimate with an adaptative filter.")
-
-    ("expert.estimator_fil_stddev",
-     bpo::value<float>(&args->expert.phy.estimator_fil_stddev)->default_value(1.0f),
-     "Sets the channel estimator smooth gaussian filter standard deviation.")
-
-    ("expert.estimator_fil_order",
-     bpo::value<uint32_t>(&args->expert.phy.estimator_fil_order)->default_value(4),
-     "Sets the channel estimator smooth gaussian filter order (even values perform better).")
-
-    ("expert.sss_algorithm",
-     bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
-     "Selects the SSS estimation algorithm.")
-
-    ("expert.pdsch_csi_enabled",
-     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(true),
-     "Stores the Channel State Information and uses it for weightening the softbits. It is only used in TM1.")
-
-    ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
-     "TX DC offset gain correction")
-    ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0),
-     "TX DC offset phase correction")
-    ("rf_calibration.tx_corr_iq_i", bpo::value<float>(&args->rf_cal.tx_corr_iq_i)->default_value(0.0),
-     "TX IQ imbalance inphase correction")
-    ("rf_calibration.tx_corr_iq_q", bpo::value<float>(&args->rf_cal.tx_corr_iq_q)->default_value(0.0),
-     "TX IQ imbalance quadrature correction");
+     "Prints on the console the buffer state every 10 seconds");
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
@@ -480,7 +333,7 @@ void *input_loop(void *m) {
       } else
       if (0 == key.compare("q")) {
         running = false;
-      }  
+      }
     else if (0 == key.compare("mbms")) {
       show_mbms = true;
     } else if (key.find("mbms_service_start") != string::npos) {
@@ -550,11 +403,11 @@ int main(int argc, char *argv[])
   if (running) {
     if (args.expert.pregenerate_signals) {
       printf("Pre-generating signals...\n");
-      ue->pregenerate_signals(true);
+      // ue->pregenerate_signals(true);
       printf("Done pregenerating signals.\n");
     }
     if (args.gui.enable) {
-      ue->start_plot();
+      // ue->start_plot();
     }
     // Auto-start MBMS service by default
     if(args.expert.mbms_service > -1){

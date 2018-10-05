@@ -38,9 +38,6 @@
 #include <pthread.h>
 
 #include "ue_base.h"
-#include "srslte/radio/radio_multi.h"
-#include "phy/phy.h"
-#include "mac/mac.h"
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/pdcp.h"
 #include "upper/rrc.h"
@@ -72,28 +69,17 @@ public:
   bool attach();
   bool deattach();
   bool is_attached();
-  void start_plot();
   void print_mbms();
   bool mbms_service_start(uint32_t serv, uint32_t port);
 
   void print_pool();
 
-  static void rf_msg(srslte_rf_error_t error);
-
   // UE metrics interface
   bool get_metrics(ue_metrics_t &m);
-
-  void pregenerate_signals(bool enable);
-
-  void radio_overflow();
 
 private:
   virtual ~ue();
 
-  srslte::radio_multi radio;
-  srsue::phy         phy;
-  srsue::mac         mac;
-  srslte::mac_pcap   mac_pcap;
   srslte::nas_pcap   nas_pcap;
   srslte::rlc        rlc;
   srslte::pdcp       pdcp;
@@ -107,8 +93,6 @@ private:
   srslte::logger        *logger;
 
   // rf_log is on ue_base
-  std::vector<srslte::log_filter*>  phy_log;
-  srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;
   srslte::log_filter  rrc_log;
@@ -126,4 +110,4 @@ private:
 } // namespace srsue
 
 #endif // SRSUE_UE_H
-  
+

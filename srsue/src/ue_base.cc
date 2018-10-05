@@ -85,29 +85,6 @@ void ue_base::cleanup(void)
   pthread_mutex_unlock(&ue_instance_mutex);
 }
 
-void ue_base::handle_rf_msg(srslte_rf_error_t error)
-{
-  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
-    rf_metrics.rf_o++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Overflow\n");
-  }else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
-    rf_metrics.rf_u++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Underflow\n");
-  } else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
-    rf_metrics.rf_l++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Late (detected in %s)\n", error.opt?"rx call":"asynchronous thread");
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OTHER) {
-    std::string str(error.msg);
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-    str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
-    str.push_back('\n');
-    rf_log.info("%s\n", str.c_str());
-  }
-}
-
 srslte::LOG_LEVEL_ENUM ue_base::level(std::string l)
 {
   std::transform(l.begin(), l.end(), l.begin(), ::toupper);

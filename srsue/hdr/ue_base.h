@@ -35,8 +35,6 @@
 #include <stdarg.h>
 #include <string>
 #include <pthread.h>
-#include "srslte/radio/radio_multi.h"
-#include "phy/phy.h"
 #include "upper/usim.h"
 #include "upper/rrc.h"
 #include "upper/nas.h"
@@ -111,7 +109,6 @@ typedef struct {
 
 typedef struct {
   std::string   ip_netmask;
-  phy_args_t    phy;
   float         metrics_period_secs;
   bool          pregenerate_signals;
   bool          print_buffer_state;
@@ -122,7 +119,6 @@ typedef struct {
 
 typedef struct {
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
   trace_args_t  trace;
   log_args_t    log;
@@ -162,21 +158,14 @@ public:
   virtual bool attach() = 0;
   virtual bool deattach() = 0;
   virtual bool is_attached() = 0;
-  virtual void start_plot() = 0;
 
   virtual void print_pool() = 0;
 
-  virtual void radio_overflow() = 0;
-
   virtual void print_mbms() = 0;
   virtual bool mbms_service_start(uint32_t serv, uint32_t port) = 0;
-  
-  void handle_rf_msg(srslte_rf_error_t error);
 
   // UE metrics interface
   virtual bool get_metrics(ue_metrics_t &m) = 0;
-
-  virtual void pregenerate_signals(bool enable) = 0;
 
   srslte::log_filter rf_log;
   rf_metrics_t     rf_metrics;
@@ -193,4 +182,4 @@ private:
 } // namespace srsue
 
 #endif // SRSUE_UE_BASE_H
-  
+
