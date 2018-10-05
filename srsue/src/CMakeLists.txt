@@ -18,8 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(phy)
-add_subdirectory(mac)
 add_subdirectory(upper)
 
 # Link libstdc++ and libgcc
@@ -32,9 +30,7 @@ if (RPATH)
 endif (RPATH)
 
 add_executable(srsue main.cc ue_base.cc ue.cc metrics_stdout.cc metrics_csv.cc)
-target_link_libraries(srsue   srsue_mac
-                              srsue_phy
-                              srsue_upper
+target_link_libraries(srsue   srsue_upper
                               srslte_common
                               srslte_phy
                               srslte_upper
