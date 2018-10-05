@@ -120,14 +120,13 @@ bool ue::init(all_args_t *args_) {
 
   printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
 
-  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  rrc.init(&rlc, &pdcp, &nas, usim, &gw, &rrc_log);
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
@@ -160,9 +159,6 @@ void ue::stop()
     gw.stop();
 
     usleep(1e5);
-    if(args->pcap.enable) {
-       mac_pcap.close();
-    }
     if(args->pcap.nas_enable) {
        nas_pcap.close();
     }
@@ -196,7 +192,6 @@ bool ue::get_metrics(ue_metrics_t &m)
 
   if(EMM_STATE_REGISTERED == nas.get_state()) {
     if(RRC_STATE_CONNECTED == rrc.get_state()) {
-      rlc.get_metrics(m.rlc);
       gw.get_metrics(m.gw);
       return true;
     }

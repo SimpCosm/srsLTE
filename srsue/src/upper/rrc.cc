@@ -45,7 +45,7 @@ const static uint32_t NOF_REQUIRED_SIBS = 4;
 const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
 
 /*******************************************************************************
-  Base functions 
+  Base functions
 *******************************************************************************/
 
 rrc::rrc()
@@ -129,7 +129,7 @@ void rrc::print_mbms()
 bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
 {
   bool ret = false;
-  
+
   if(serving_cell->has_mcch) {
     LIBLTE_RRC_MCCH_MSG_STRUCT msg;
     memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
@@ -149,18 +149,13 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
 }
 
 
-void rrc::init(phy_interface_rrc *phy_,
-               mac_interface_rrc *mac_,
-               rlc_interface_rrc *rlc_,
+void rrc::init(rlc_interface_rrc *rlc_,
                pdcp_interface_rrc *pdcp_,
                nas_interface_rrc *nas_,
                usim_interface_rrc *usim_,
                gw_interface_rrc *gw_,
-               mac_interface_timers *mac_timers_,
                srslte::log *rrc_log_) {
   pool = byte_buffer_pool::get_instance();
-  phy = phy_;
-  mac = mac_;
   rlc = rlc_;
   pdcp = pdcp_;
   nas = nas_;
@@ -169,7 +164,6 @@ void rrc::init(phy_interface_rrc *phy_,
   rrc_log = rrc_log_;
 
   // Use MAC timers
-  mac_timers = mac_timers_;
   state = RRC_STATE_IDLE;
   plmn_is_selected = false;
 
@@ -408,7 +402,7 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
   pthread_mutex_unlock(&mutex);
 
   if (ret.found == phy_interface_rrc::cell_search_ret_t::ERROR) {
-    return -1; 
+    return -1;
   } else {
     return nof_plmns;
   }
@@ -1388,7 +1382,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.N_bytes = nas_msg->N_bytes;
 
   pool->deallocate(nas_msg);
-  
+
   send_ul_dcch_msg();
 }
 
@@ -2230,7 +2224,7 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
 //  for(uint8_t i=0;i<sib2->mbsfn_subfr_cnfg_list_size;i++) {
 //    memcpy(&cfg.mbsfn_subfr_cnfg_list[i], &sib2->mbsfn_subfr_cnfg_list[i], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
 //  }
-  
+
     // Set MBSFN configs
   phy->set_config_mbsfn_sib2(sib2);
 

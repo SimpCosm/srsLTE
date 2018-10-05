@@ -235,7 +235,7 @@ class cell_t
   }
 
   phy_interface_rrc::phy_cell_t phy_cell;
-  bool     in_sync; 
+  bool     in_sync;
   bool     has_mcch;
    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
@@ -245,7 +245,7 @@ class cell_t
 
 private:
   float    rsrp;
-  
+
   struct timeval last_update;
 
   bool     has_valid_sib1;
@@ -267,14 +267,11 @@ public:
   rrc();
   ~rrc();
 
-  void init(phy_interface_rrc *phy_,
-            mac_interface_rrc *mac_,
-            rlc_interface_rrc *rlc_,
+  void init(rlc_interface_rrc *rlc_,
             pdcp_interface_rrc *pdcp_,
             nas_interface_rrc *nas_,
             usim_interface_rrc *usim_,
             gw_interface_rrc   *gw_,
-            srslte::mac_interface_timers *mac_timers_,
             srslte::log *rrc_log_);
 
   void stop();
@@ -285,7 +282,7 @@ public:
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
   void liblte_rrc_log(char *str);
-  
+
   void print_mbms();
   bool mbms_service_start(uint32_t serv, uint32_t port);
 
@@ -347,7 +344,7 @@ private:
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
   gw_interface_rrc    *gw;
-  
+
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
@@ -637,14 +634,14 @@ private:
   void          release_drb(uint8_t lcid);
    void         add_mrb(uint32_t lcid, uint32_t port);
   bool          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
-  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
-  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 
-  
-  // Helpers for setting default values 
+  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults);
+  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults);
+
+  // Helpers for setting default values
   void          set_phy_default_pucch_srs();
   void          set_phy_default();
   void          set_mac_default();
-  void          set_rrc_default(); 
+  void          set_rrc_default();
 };
 
 } // namespace srsue

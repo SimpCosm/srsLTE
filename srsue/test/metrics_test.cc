@@ -49,8 +49,6 @@ public:
     // fill dummy values
     bzero(&m, sizeof(ue_metrics_t));
     m.rf.rf_o = 10;
-    m.phy.dl.rsrp = -10.0;
-    m.phy.dl.pathloss = 74;
     return true;
   }
 

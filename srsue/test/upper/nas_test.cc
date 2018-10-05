@@ -31,7 +31,6 @@
 #include "srsue/hdr/upper/nas.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/upper/rrc.h"
-#include "srsue/hdr/mac/mac.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/pdcp_entity.h"
 #include "srslte/upper/pdcp.h"
@@ -137,7 +136,6 @@ int security_command_test()
   int ret = SRSLTE_ERROR;
   srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -195,7 +193,6 @@ int mme_attach_request_test()
   int ret = SRSLTE_ERROR;
   srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -249,7 +246,6 @@ int esm_info_request_test()
   int ret = SRSLTE_ERROR;
   srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);

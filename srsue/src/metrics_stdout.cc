@@ -81,33 +81,12 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     cout << "--Signal--------------DL------------------------------UL----------------------" << endl;
     cout << "  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
   }
-  cout << float_to_string(metrics.phy.dl.rsrp, 2);
-  cout << float_to_string(metrics.phy.dl.pathloss, 2);
-  cout << float_to_eng_string(metrics.phy.sync.cfo, 2);
-  cout << float_to_string(metrics.phy.dl.mcs, 2);
-  cout << float_to_string(metrics.phy.dl.sinr, 2);
-  cout << float_to_string(metrics.phy.dl.turbo_iters, 2);
-  cout << float_to_eng_string((float) metrics.mac.rx_brate/period_usec*1e6, 2);
-  if (metrics.mac.rx_pkts > 0) {
-    cout << float_to_string((float) 100*metrics.mac.rx_errors/metrics.mac.rx_pkts, 1) << "%";
-  } else {
-    cout << float_to_string(0, 1) << "%";
-  }
-  cout << float_to_string(metrics.phy.sync.ta_us, 2);
-  cout << float_to_string(metrics.phy.ul.mcs, 2);
-  cout << float_to_eng_string((float) metrics.mac.ul_buffer, 2);
-  cout << float_to_eng_string((float) metrics.mac.tx_brate/period_usec*1e6, 2);
-  if (metrics.mac.tx_pkts > 0) {
-    cout << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1) << "%";
-  } else {
-    cout << float_to_string(0, 1) << "%";
-  }
   cout << endl;
 
   if(metrics.rf.rf_error) {
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
-  
+
 }
 
 std::string metrics_stdout::float_to_string(float f, int digits)
