@@ -75,9 +75,6 @@ bool ue::init(all_args_t *args_) {
   byte_buffer_pool::get_instance()->set_log(&pool_log);
 
   // Init logs
-  rf_log.set_level(srslte::LOG_LEVEL_INFO);
-  rf_log.info("Starting UE\n");
-
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
   rrc_log.set_level(level(args->log.rrc_level));
@@ -107,19 +104,6 @@ bool ue::init(all_args_t *args_) {
     return false;
   }
 
-  /* Start Radio */
-  char *dev_name = NULL;
-  if (args->rf.device_name.compare("auto")) {
-    dev_name = (char*) args->rf.device_name.c_str();
-  }
-
-  char *dev_args = NULL;
-  if (args->rf.device_args.compare("auto")) {
-    dev_args = (char*) args->rf.device_args.c_str();
-  }
-
-  printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
-
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
@@ -127,6 +111,7 @@ bool ue::init(all_args_t *args_) {
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   rrc.init(&rlc, &pdcp, &nas, usim, &gw, &rrc_log);
+  printf("init rrc done\n");
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);

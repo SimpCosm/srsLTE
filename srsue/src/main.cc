@@ -382,6 +382,7 @@ int main(int argc, char *argv[])
   if (!ue->init(&args)) {
     exit(1);
   }
+  cout << "UE init done" << endl;
 
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);

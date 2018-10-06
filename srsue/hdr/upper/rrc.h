@@ -389,7 +389,7 @@ private:
   std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
 
   // RRC constants and timers
-  srslte::mac_interface_timers *mac_timers;
+  srslte::timers timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
   uint32_t t300, t301, t302, t310, t311, t304;
@@ -512,7 +512,7 @@ private:
     rrc               *parent;
     srslte::log       *log_h;
     phy_interface_rrc *phy;
-    srslte::mac_interface_timers *mac_timers;
+    srslte::timers    *timers;
 
     uint32_t filter_k_rsrp, filter_k_rsrq;
     float    filter_a[NOF_MEASUREMENTS];
@@ -634,13 +634,8 @@ private:
   void          release_drb(uint8_t lcid);
    void         add_mrb(uint32_t lcid, uint32_t port);
   bool          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
-  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults);
-  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults);
 
   // Helpers for setting default values
-  void          set_phy_default_pucch_srs();
-  void          set_phy_default();
-  void          set_mac_default();
   void          set_rrc_default();
 };
 
