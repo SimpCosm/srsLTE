@@ -201,15 +201,13 @@ void rrc::init(rlc_interface_rrc *rlc_,
   // Set default values for all layers
   set_rrc_default();
 
-  rrc_log->info("measurements init\n");
-  measurements.init(this);
+  // measurements.init(this);
   // set seed for rand (used in attach)
   srand(time(NULL));
 
   running = true;
   start();
   initiated = true;
-  rrc_log->info("measurements init done\n");
 }
 
 void rrc::stop() {
@@ -311,7 +309,7 @@ void rrc::run_tti(uint32_t tti) {
             con_reconfig_failed();
           }
         }
-        measurements.run_tti(tti);
+        // measurements.run_tti(tti);
         if (go_idle) {
           go_idle = false;
           leave_connected();
@@ -457,14 +455,14 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
   cs_ret_t cs_ret = cell_selection();
 
   // .. and SI acquisition
-  if (phy->cell_is_camping()) {
+  // if (phy->cell_is_camping()) {
+  if (true) {
 
     // CCCH configuration applied already at start
     // timeAlignmentCommon applied in configure_serving_cell
 
     rrc_log->info("Configuring serving cell...\n");
     if (configure_serving_cell()) {
-
       timers.get(t300)->reset();
       timers.get(t300)->run();
 
@@ -532,7 +530,7 @@ void rrc::set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {
 /* Retrieves all required SIB or configures them if already retrieved before
  */
 bool rrc::configure_serving_cell() {
-
+/* FIXME: comment by houmin
   if (!phy->cell_is_camping()) {
     rrc_log->error("Trying to configure Cell while not camping on it\n");
     return false;
@@ -560,6 +558,7 @@ bool rrc::configure_serving_cell() {
       }
     }
   }
+*/
   return true;
 }
 
@@ -824,8 +823,15 @@ bool rrc::si_acquire(uint32_t sib_index)
 phy_interface_rrc::cell_search_ret_t rrc::cell_search()
 {
   phy_interface_rrc::phy_cell_t new_cell;
+  new_cell.earfcn = 3400;
+  new_cell.cell.id = 1;
 
-  phy_interface_rrc::cell_search_ret_t ret = phy->cell_search(&new_cell);
+  // phy_interface_rrc::cell_search_ret_t ret = phy->cell_search(&new_cell);
+  phy_interface_rrc::cell_search_ret_t ret;
+  ret.found = phy_interface_rrc::cell_search_ret_t::CELL_FOUND;
+  ret.last_freq = phy_interface_rrc::cell_search_ret_t::NO_MORE_FREQS;
+
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1 = new LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT;
 
   switch(ret.found) {
     case phy_interface_rrc::cell_search_ret_t::CELL_FOUND:
@@ -837,11 +843,18 @@ phy_interface_rrc::cell_search_ret_t rrc::cell_search()
         break;
       }
       set_serving_cell(new_cell);
+      sib1->N_plmn_ids = 1;
+      sib1->tracking_area_code = 1;
+      sib1->plmn_id[0].id.mcc = 61441;
+      sib1->plmn_id[0].id.mnc = 65281;
+      serving_cell->set_sib1(sib1);
 
-      if (phy->cell_is_camping()) {
+      // if (phy->cell_is_camping()) {
+      if (true) {
         if (!serving_cell->has_sib1()) {
           rrc_log->info("Cell has no SIB1. Obtaining SIB1\n");
-          if (!si_acquire(0)) {
+          //  if (!si_acquire(0)) {
+          if (false) {
             rrc_log->error("Timeout while acquiring SIB1\n");
           }
         } else {
@@ -866,10 +879,11 @@ phy_interface_rrc::cell_search_ret_t rrc::cell_search()
  */
 rrc::cs_ret_t rrc::cell_selection()
 {
+/* FIXME: comment by houmin
   // Neighbour cells are sorted in descending order of RSRP
   for (uint32_t i = 0; i < neighbour_cells.size(); i++) {
-    if (/*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
-         * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
+    if (//TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
+        // neighbour_cells[i]->plmn_equals(selected_plmn_id) &&
         neighbour_cells[i]->in_sync) // matches S criteria
     {
       // If currently connected, verify cell selection criteria
@@ -898,8 +912,11 @@ rrc::cs_ret_t rrc::cell_selection()
       }
     }
   }
+*/
   if (serving_cell->in_sync) {
-    if (!phy->cell_is_camping()) {
+    /* FIXME: comment by houmin
+    // if (!phy->cell_is_camping()) {
+    if (false) {
       rrc_log->info("Serving cell is in-sync but not camping. Selecting it...\n");
       if (phy->cell_select(&serving_cell->phy_cell)) {
         rrc_log->info("Selected serving cell OK.\n");
@@ -908,6 +925,7 @@ rrc::cs_ret_t rrc::cell_selection()
         rrc_log->error("Could not camp on serving cell.\n");
       }
     }
+    */
     return SAME_CELL;
   }
   // If can not find any suitable cell, search again
@@ -1878,7 +1896,7 @@ void rrc::send_ul_ccch_msg()
     }
 
     rrc_log->debug("Setting UE contention resolution ID: %" PRIu64 "\n", uecri);
-    mac->set_contention_id(uecri);
+    // mac->set_contention_id(uecri);
 
     rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
     pdcp->write_sdu(RB_ID_SRB0, pdu);
