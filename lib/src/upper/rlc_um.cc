@@ -49,15 +49,13 @@ rlc_um::rlc_um(uint32_t queue_len) : tx_sdu_queue(queue_len)
   pool = byte_buffer_pool::get_instance();
 
   pthread_mutex_init(&mutex, NULL);
-  
+
   vt_us    = 0;
   vr_ur    = 0;
   vr_ux    = 0;
   vr_uh    = 0;
-  
-  vr_ur_in_rx_sdu = 0; 
-  
-  mac_timers = NULL;
+
+  vr_ur_in_rx_sdu = 0;
 
   pdu_lost = false;
 }
@@ -67,25 +65,22 @@ rlc_um::~rlc_um()
 {
   pthread_mutex_destroy(&mutex);
   pool = NULL;
+  /* FIXME houmin
   if (mac_timers && reordering_timer) {
     mac_timers->timer_release_id(reordering_timer_id);
     reordering_timer = NULL;
-  }
+  }*/
 }
 
 void rlc_um::init(srslte::log                  *log_,
                   uint32_t                      lcid_,
                   srsue::pdcp_interface_rlc    *pdcp_,
-                  srsue::rrc_interface_rlc     *rrc_,
-                  srslte::mac_interface_timers *mac_timers_)
+                  srsue::rrc_interface_rlc     *rrc_)
 {
   log                   = log_;
   lcid                  = lcid_;
   pdcp                  = pdcp_;
   rrc                   = rrc_;
-  mac_timers            = mac_timers_;
-  reordering_timer_id   = mac_timers->timer_get_unique_id();
-  reordering_timer      = mac_timers->timer_get(reordering_timer_id);
   tx_enabled = true;
 }
 
@@ -259,7 +254,7 @@ int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   pthread_mutex_lock(&mutex);
   r = build_data_pdu(payload, nof_bytes);
   pthread_mutex_unlock(&mutex);
-  return r; 
+  return r;
 }
 
 void rlc_um::write_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -464,7 +459,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   pdu.buf->N_bytes -= header_len;
   pdu.header = header;
   rx_window[header.sn] = pdu;
-  
+
   // Update vr_uh
   if(!inside_reordering_window(header.sn))
     vr_uh  = (header.sn + 1)%cfg.rx_mod;
@@ -473,7 +468,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   log->debug("Entering Reassemble from received PDU\n");
   reassemble_rx_sdus();
   log->debug("Finished reassemble from received PDU\n");
-  
+
   // Update reordering variables and timers
   if(reordering_timer->is_running())
   {

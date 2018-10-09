@@ -91,12 +91,12 @@ struct rlc_amd_pdu_header_t{
 
   rlc_amd_pdu_header_t(){
     dc = RLC_DC_FIELD_CONTROL_PDU;
-    rf = 0; 
-    p  = 0; 
-    fi = 0; 
-    sn = 0; 
-    lsf = 0; 
-    so = 0; 
+    rf = 0;
+    p  = 0;
+    fi = 0;
+    sn = 0;
+    lsf = 0;
+    so = 0;
     N_li=0;
     for(int i=0;i<RLC_AM_WINDOW_SIZE;i++)
       li[i] = 0;
@@ -159,12 +159,11 @@ public:
   virtual void init(srslte::log                       *rlc_entity_log_,
                     uint32_t                           lcid_,
                     srsue::pdcp_interface_rlc         *pdcp_,
-                    srsue::rrc_interface_rlc          *rrc_,
-                    srslte::mac_interface_timers      *mac_timers_) = 0;
+                    srsue::rrc_interface_rlc          *rrc_) = 0;
   virtual void configure(srslte_rlc_config_t cnfg) = 0;
   virtual void stop() = 0;
   virtual void reestablish() = 0;
-  virtual void empty_queue() = 0; 
+  virtual void empty_queue() = 0;
 
   virtual rlc_mode_t    get_mode() = 0;
   virtual uint32_t      get_bearer() = 0;

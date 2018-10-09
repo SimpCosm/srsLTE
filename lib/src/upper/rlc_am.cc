@@ -49,7 +49,7 @@ rlc_am::rlc_am(uint32_t queue_len) : tx_sdu_queue(queue_len)
   pool = byte_buffer_pool::get_instance();
 
   pthread_mutex_init(&mutex, NULL);
-  
+
   vt_a    = 0;
   vt_ms   = RLC_AM_WINDOW_SIZE;
   vt_s    = 0;
@@ -78,8 +78,7 @@ rlc_am::~rlc_am()
 void rlc_am::init(srslte::log                  *log_,
                   uint32_t                      lcid_,
                   srsue::pdcp_interface_rlc    *pdcp_,
-                  srsue::rrc_interface_rlc     *rrc_,
-                  srslte::mac_interface_timers *mac_timers)
+                  srsue::rrc_interface_rlc     *rrc_)
 {
   log  = log_;
   lcid = lcid_;
@@ -158,7 +157,7 @@ void rlc_am::stop()
     l.clear();
   }
   rx_segments.clear();
-  
+
   // Drop all messages in RX window
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator rxit;
   for(rxit = rx_window.begin(); rxit != rx_window.end(); rxit++) {

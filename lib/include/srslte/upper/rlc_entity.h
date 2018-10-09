@@ -52,7 +52,6 @@ public:
             uint32_t                    lcid_,
             srsue::pdcp_interface_rlc  *pdcp_,
             srsue::rrc_interface_rlc   *rrc_,
-            mac_interface_timers       *mac_timers_,
             int                         buffer_size = -1); // use -1 for default buffer sizes
 
   void configure(srslte_rlc_config_t cnfg);
@@ -73,7 +72,7 @@ public:
   uint32_t get_total_buffer_state();
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
-  
+
 
 private:
   rlc_mode_t mode;

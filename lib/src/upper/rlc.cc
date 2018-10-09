@@ -38,7 +38,6 @@ rlc::rlc()
   rlc_log = NULL;
   pdcp = NULL;
   rrc = NULL;
-  mac_timers = NULL;
   ue = NULL;
   default_lcid = 0;
   bzero(metrics_time, sizeof(metrics_time));
@@ -49,8 +48,7 @@ rlc::rlc()
 void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
                srsue::rrc_interface_rlc  *rrc_,
                srsue::ue_interface       *ue_,
-               log                       *rlc_log_, 
-               mac_interface_timers      *mac_timers_,
+               log                       *rlc_log_,
                uint32_t                  lcid_,
                int                       buffer_size_)
 {
@@ -58,17 +56,16 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
   rrc     = rrc_;
   ue      = ue_;
   rlc_log = rlc_log_;
-  mac_timers = mac_timers_;
   default_lcid = lcid_;
   buffer_size  = buffer_size_;
 
   gettimeofday(&metrics_time[1], NULL);
-  reset_metrics(); 
+  reset_metrics();
 
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, buffer_size); // SRB0
 }
 
-void rlc::reset_metrics() 
+void rlc::reset_metrics()
 {
   bzero(dl_tput_bytes, sizeof(long)*SRSLTE_N_RADIO_BEARERS);
   bzero(ul_tput_bytes, sizeof(long)*SRSLTE_N_RADIO_BEARERS);
@@ -85,16 +82,16 @@ void rlc::stop()
 
 void rlc::get_metrics(rlc_metrics_t &m)
 {
-  
+
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec*1e-6;
-  
-  m.dl_tput_mbps = 0; 
-  m.ul_tput_mbps = 0; 
+
+  m.dl_tput_mbps = 0;
+  m.ul_tput_mbps = 0;
   for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
     m.dl_tput_mbps += (dl_tput_bytes[i]*8/(double)1e6)/secs;
-    m.ul_tput_mbps += (ul_tput_bytes[i]*8/(double)1e6)/secs;    
+    m.ul_tput_mbps += (ul_tput_bytes[i]*8/(double)1e6)/secs;
     if(rlc_array[i].active()) {
       rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
                     i,
@@ -131,7 +128,7 @@ void rlc::reestablish() {
 void rlc::reset()
 {
   stop();
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, buffer_size); // SRB0
 }
 
 void rlc::empty_queue()
@@ -150,6 +147,7 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
   if(valid_lcid(lcid)) {
     rlc_array[lcid].write_sdu(sdu);
   }
+
 }
 void rlc::write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu)
 {
@@ -315,16 +313,16 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
-      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
+      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_BI:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, buffer_size);
       break;
     default:
       rlc_log->error("Cannot add RLC entity - invalid mode\n");
@@ -344,7 +342,7 @@ void rlc::add_bearer_mrb(uint32_t lcid)
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
     return;
   }
-  rlc_array_mrb[lcid].init(rlc_log, lcid, pdcp, rrc, mac_timers);
+  rlc_array_mrb[lcid].init(rlc_log, lcid, pdcp, rrc);
   rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
 }
 
@@ -354,7 +352,7 @@ void rlc::add_bearer_mrb_enb(uint32_t lcid)
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
     return;
   }
-  rlc_array_mrb[lcid].init(rlc_log,lcid,pdcp,rrc,mac_timers);
+  rlc_array_mrb[lcid].init(rlc_log,lcid,pdcp,rrc);
   rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
 }
 

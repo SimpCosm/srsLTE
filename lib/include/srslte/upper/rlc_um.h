@@ -54,12 +54,11 @@ public:
   void init(log                       *rlc_entity_log_,
             uint32_t                   lcid_,
             srsue::pdcp_interface_rlc *pdcp_,
-            srsue::rrc_interface_rlc  *rrc_,
-            mac_interface_timers      *mac_timers_);
+            srsue::rrc_interface_rlc  *rrc_);
   void configure(srslte_rlc_config_t cnfg);
   void reestablish();
   void stop();
-  void empty_queue(); 
+  void empty_queue();
   bool is_mrb();
 
   rlc_mode_t    get_mode();
@@ -87,7 +86,6 @@ private:
   uint32_t                     lcid;
   srsue::pdcp_interface_rlc   *pdcp;
   srsue::rrc_interface_rlc    *rrc;
-  mac_interface_timers        *mac_timers;
 
   // TX SDU buffers
   rlc_tx_queue           tx_sdu_queue;

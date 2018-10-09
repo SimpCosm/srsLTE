@@ -46,8 +46,7 @@ rlc_tm::~rlc_tm() {
 void rlc_tm::init(srslte::log               *log_,
                   uint32_t                   lcid_,
                   srsue::pdcp_interface_rlc *pdcp_,
-                  srsue::rrc_interface_rlc  *rrc_, 
-                  mac_interface_timers      *mac_timers)
+                  srsue::rrc_interface_rlc  *rrc_)
 {
   log  = log_;
   lcid = lcid_;
@@ -95,12 +94,14 @@ uint32_t rlc_tm::get_bearer()
 // PDCP interface
 void rlc_tm::write_sdu(byte_buffer_t *sdu)
 {
+  printf("try to write sdu in tm\n");
   if (!tx_enabled) {
     byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
   if (sdu) {
     ul_queue.write(sdu);
+    printf("write sdu to ul_queue\n");
     log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
                   rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
   } else {

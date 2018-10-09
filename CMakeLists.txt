@@ -396,7 +396,7 @@ if(RF_FOUND)
 
   if(ENABLE_SRSENB)
     message(STATUS "Building with srsENB")
-    add_subdirectory(srsenb)
+    #add_subdirectory(srsenb)
   else(ENABLE_SRSENB)
     message(STATUS "srsENB build disabled")
   endif(ENABLE_SRSENB)

@@ -55,7 +55,6 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
             log                       *rlc_log_,
-            mac_interface_timers      *mac_timers_,
             uint32_t                   lcid_,
             int                        buffer_size = -1); // -1 to use default buffer sizes
   void stop();
@@ -90,13 +89,12 @@ public:
   void add_bearer_mrb(uint32_t lcid);
   void add_bearer_mrb_enb(uint32_t lcid);
 private:
-  void reset_metrics(); 
-  
+  void reset_metrics();
+
   byte_buffer_pool            *pool;
   srslte::log                 *rlc_log;
   srsue::pdcp_interface_rlc   *pdcp;
   srsue::rrc_interface_rlc    *rrc;
-  srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
   srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
   srslte::rlc_um               rlc_array_mrb[SRSLTE_N_MCH_LCIDS];

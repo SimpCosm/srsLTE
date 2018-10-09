@@ -38,7 +38,6 @@ void rlc_entity::init(rlc_mode_t                   mode_,
                       uint32_t                     lcid_,
                       srsue::pdcp_interface_rlc   *pdcp_,
                       srsue::rrc_interface_rlc    *rrc_,
-                      mac_interface_timers        *mac_timers_,
                       int                          buffer_size)
 {
 
@@ -52,6 +51,7 @@ void rlc_entity::init(rlc_mode_t                   mode_,
     switch(mode_)
     {
       case RLC_MODE_TM:
+        printf("rlc mode tm init\n");
         rlc = new rlc_tm((uint32_t) buffer_size);
         break;
       case RLC_MODE_UM:
@@ -76,7 +76,7 @@ void rlc_entity::init(rlc_mode_t                   mode_,
       rlc_entity_log_->console("Error reestablishing RLC instance. Mode changed from %d to %d. \n", mode, mode_);
     }
   }
-  rlc->init(rlc_entity_log_, lcid_, pdcp_, rrc_, mac_timers_);
+  rlc->init(rlc_entity_log_, lcid_, pdcp_, rrc_);
 }
 
 void rlc_entity::configure(srslte_rlc_config_t cnfg)
