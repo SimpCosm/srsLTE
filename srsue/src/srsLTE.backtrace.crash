@@ -1,0 +1,19 @@
+--- command='srsue' version=18.6.1 signal=11 date='10/10/2018 19:56:17' ---
+	srsue(+0x87eba) [0x56361f0a2eba]
+	/lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7f8116b81f20]
+	srsue(_ZN6srslte6rlc_tm8read_pduEPhj+0x2d5) [0x56361f0beac5]
+	srsue(_ZN6srslte3rlc7get_sduEPh+0x62) [0x56361f0bc762]
+	srsue(_Z9send_loopPv+0x9a) [0x56361f058efa]
+	/lib/x86_64-linux-gnu/libpthread.so.0(+0x76db) [0x7f81181666db]
+	/lib/x86_64-linux-gnu/libc.so.6(clone+0x3f) [0x7f8116c6488f]
+
+--- command='srsue' version=18.6.1 signal=11 date='10/10/2018 19:56:47' ---
+	srsue(+0x87eba) [0x563422ef6eba]
+	/lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7f53bab7df20]
+	/lib/x86_64-linux-gnu/libc.so.6(+0x18ece1) [0x7f53baccdce1]
+	srsue(_ZN6srslte6rlc_tm8read_pduEPhj+0x22e) [0x563422f12a1e]
+	srsue(_ZN6srslte3rlc7get_sduEPh+0x62) [0x563422f10762]
+	srsue(_Z9send_loopPv+0x9a) [0x563422eacefa]
+	/lib/x86_64-linux-gnu/libpthread.so.0(+0x76db) [0x7f53bc1626db]
+	/lib/x86_64-linux-gnu/libc.so.6(clone+0x3f) [0x7f53bac6088f]
+

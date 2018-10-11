@@ -51,7 +51,6 @@ void rlc_entity::init(rlc_mode_t                   mode_,
     switch(mode_)
     {
       case RLC_MODE_TM:
-        printf("rlc mode tm init\n");
         rlc = new rlc_tm((uint32_t) buffer_size);
         break;
       case RLC_MODE_UM:

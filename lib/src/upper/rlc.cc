@@ -24,6 +24,8 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/rlc_tm.h"
@@ -62,7 +64,42 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
   gettimeofday(&metrics_time[1], NULL);
   reset_metrics();
 
+  if (!init_socket()) {
+    rlc_log->warning("init socket failed\n");
+  }
+
   rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, buffer_size); // SRB0
+}
+
+bool rlc::init_socket()
+{
+  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
+  {
+    rlc_log->error("init socket failed\n");
+    return false;
+  }
+
+  // TODO parameters read from config file.
+  bzero(&enb_addr, sizeof(enb_addr));
+  enb_addr.sin_family = AF_INET;
+  enb_addr.sin_addr.s_addr = inet_addr("127.0.1.1");
+  enb_addr.sin_port = htons(8000);
+
+  bzero(&ue_addr, sizeof(ue_addr));
+  ue_addr.sin_family = AF_INET;
+  ue_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  ue_addr.sin_port = htons(6259);
+
+  if (bind(sockfd, (struct sockaddr*)&ue_addr, sizeof(ue_addr)) < 0) {
+    rlc_log->error("bind ue addr failed\n");
+  }
+
+  return true;
+}
+
+struct sockaddr_in rlc::get_addr() {
+    return enb_addr;
 }
 
 void rlc::reset_metrics()
@@ -155,6 +192,7 @@ void rlc::write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu)
     rlc_array[lcid].write_sdu_nb(sdu);
   }
 }
+
 void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
 {
   if(valid_lcid_mrb(lcid)) {
@@ -166,6 +204,18 @@ bool rlc::rb_is_um(uint32_t lcid) {
   return rlc_array[lcid].get_mode()==RLC_MODE_UM;
 }
 
+uint32_t rlc::get_sdu(uint8_t *payload) {
+    uint32_t sdu_size;
+    for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
+        if (valid_lcid(i)) {
+            sdu_size = rlc_array[i].read_pdu(payload, 10000);
+            if (sdu_size > 0) {
+                return sdu_size;
+            }
+        }
+    }
+    return 0;
+}
 /*******************************************************************************
   MAC interface
 *******************************************************************************/

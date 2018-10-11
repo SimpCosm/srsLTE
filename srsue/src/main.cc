@@ -39,6 +39,7 @@
 #include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
+#include "srslte/upper/rlc.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
@@ -314,6 +315,45 @@ void sig_int_handler(int signo) {
   }
 }
 
+void *send_loop(void *arg) {
+    srslte::rlc* _rlc = (srslte::rlc*)arg;
+    struct sockaddr_in enb_addr;
+    uint8_t *payload = new uint8_t[1000];
+    uint32_t size;
+    uint32_t send_len;
+    bzero(&enb_addr, sizeof(enb_addr));
+    enb_addr.sin_family = AF_INET;
+    enb_addr.sin_addr.s_addr = inet_addr("127.0.1.1");
+    enb_addr.sin_port = htons(8000);
+
+    while(true) {
+        size = _rlc->get_sdu(payload);
+        if (size == 0) { // queue is empty
+            usleep(2000);
+            continue;
+        } else {
+            send_len = sendto(_rlc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
+            printf("send_len = %d\n", send_len);
+        }
+    }
+}
+
+void *recv_loop(void *arg) {
+    srslte::rlc* _rlc = (srslte::rlc*)arg;
+    uint32_t size;
+    uint8_t *payload = new uint8_t[1000];
+    while (true) {
+        size = read(_rlc->sockfd, payload, 1000);
+        if (size > 0) {
+            printf("receive len = %d\n", size);
+            _rlc->write_pdu(0, payload, size);
+        } else {
+            printf("no packet received\n");
+            usleep(2000);
+        }
+    }
+}
+
 void *input_loop(void *m) {
   string key;
   while (running) {
@@ -395,8 +435,11 @@ int main(int argc, char *argv[])
   }
 
   pthread_t input;
+  pthread_t send_tid;
+  pthread_t recv_tid;
   pthread_create(&input, NULL, &input_loop, &args);
-
+  pthread_create(&send_tid, NULL, &send_loop, ue->get_rlc());
+  pthread_create(&recv_tid, NULL, &recv_loop, ue->get_rlc());
   printf("Attaching UE...\n");
   while (!ue->attach() && running) {
     sleep(1);

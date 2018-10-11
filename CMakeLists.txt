@@ -63,8 +63,8 @@ configure_file(
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
-option(ENABLE_SRSENB   "Build srsENB application"                 ON)
-option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(ENABLE_SRSENB   "Build srsENB application"                 OFF)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
@@ -406,7 +406,7 @@ endif(RF_FOUND)
 
 if(ENABLE_SRSEPC)
   message(STATUS "Building with srsEPC")
-  add_subdirectory(srsepc)
+  #add_subdirectory(srsepc)
 else(ENABLE_SRSEPC)
   message(STATUS "srsEPC build disabled")
 endif(ENABLE_SRSEPC)

@@ -42,6 +42,7 @@
 
 #include "srslte/common/logger.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/upper/rlc.h"
 
 #include "ue_metrics_interface.h"
 
@@ -166,6 +167,8 @@ public:
 
   // UE metrics interface
   virtual bool get_metrics(ue_metrics_t &m) = 0;
+
+  virtual srslte::rlc* get_rlc() = 0;
 
   srslte::log_filter rf_log;
   rf_metrics_t     rf_metrics;

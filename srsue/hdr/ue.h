@@ -77,6 +77,7 @@ public:
   // UE metrics interface
   bool get_metrics(ue_metrics_t &m);
 
+  srslte::rlc* get_rlc();
 private:
   virtual ~ue();
 

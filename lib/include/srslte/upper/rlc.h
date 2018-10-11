@@ -44,8 +44,7 @@ namespace srslte {
  * each bearer.
  ***************************************************************************/
 class rlc
-    :public srsue::rlc_interface_mac
-    ,public srsue::rlc_interface_pdcp
+    :public srsue::rlc_interface_pdcp
     ,public srsue::rlc_interface_rrc
 {
 public:
@@ -88,6 +87,15 @@ public:
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
   void add_bearer_mrb(uint32_t lcid);
   void add_bearer_mrb_enb(uint32_t lcid);
+
+  // Socket interface
+  int                   sockfd;
+  struct sockaddr_in    enb_addr;
+  struct sockaddr_in    ue_addr;
+  bool                  init_socket();
+  struct sockaddr_in    get_addr();
+  uint32_t              get_sdu(uint8_t *payload);
+
 private:
   void reset_metrics();
 
