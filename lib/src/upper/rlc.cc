@@ -206,9 +206,12 @@ bool rlc::rb_is_um(uint32_t lcid) {
 
 uint32_t rlc::get_sdu(uint8_t *payload) {
     uint32_t sdu_size;
-    for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
+    for (uint8_t i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
         if (valid_lcid(i)) {
-            sdu_size = rlc_array[i].read_pdu(payload, 10000);
+            payload[0] = (uint8_t)(rnti >> 8);
+            payload[1] = (uint8_t)rnti;
+            payload[2] = i;
+            sdu_size = rlc_array[i].read_pdu(payload+3, 10000);
             if (sdu_size > 0) {
                 return sdu_size;
             }

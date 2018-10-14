@@ -37,6 +37,15 @@
 
 namespace srslte {
 
+struct sdu_t{
+    uint16_t rnti;
+    uint32_t lcid;
+    srslte::byte_buffer_t *sdu;
+    uint16_t sdu_type;
+    sdu_t(uint16_t _rnti = 0, uint32_t _lcid = 0, srslte::byte_buffer_t * _sdu = 0, uint16_t _sdu_type = 0):
+        rnti(_rnti),lcid(_lcid),sdu(_sdu),sdu_type(_sdu_type) {}
+};
+
 /****************************************************************************
  * RLC Layer
  * Ref: 3GPP TS 36.322 v10.0.0
@@ -96,6 +105,8 @@ public:
   struct sockaddr_in    get_addr();
   uint32_t              get_sdu(uint8_t *payload);
 
+  uint16_t rnti;
+  void set_rnti(uint16_t _rnti) {rnti = _rnti; printf("set rnti\n"); }
 private:
   void reset_metrics();
 

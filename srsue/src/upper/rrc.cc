@@ -479,6 +479,7 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
       // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
       while (timers.get(t300)->is_running()) {
         usleep(1000);
+        printf("wait until t300 stops\n");
       }
 
       if (state == RRC_STATE_CONNECTED) {

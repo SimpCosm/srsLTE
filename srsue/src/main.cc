@@ -326,27 +326,59 @@ void *send_loop(void *arg) {
     enb_addr.sin_addr.s_addr = inet_addr("127.0.1.1");
     enb_addr.sin_port = htons(8000);
 
+    payload[0] = 0x01;
+    payload[1] = 127;
+    payload[2] = 0;
+    payload[3] = 0;
+    payload[4] = 1;
+    payload[5] = 0x18;
+    payload[6] = 0x73;
+
+    send_len = sendto(_rlc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
+
     while(true) {
-        size = _rlc->get_sdu(payload);
+        payload[0] = 0x00; // normal
+        size = _rlc->get_sdu(payload+1);
         if (size == 0) { // queue is empty
             usleep(2000);
             continue;
         } else {
             send_len = sendto(_rlc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
-            printf("send_len = %d\n", send_len);
+            // printf("send_len = %d\n", send_len);
         }
     }
 }
 
 void *recv_loop(void *arg) {
     srslte::rlc* _rlc = (srslte::rlc*)arg;
-    uint32_t size;
     uint8_t *payload = new uint8_t[1000];
+    uint8_t type;
+    uint8_t lcid;
+    uint16_t rnti;
+    uint32_t size;
     while (true) {
+        printf("try to recv\n");
         size = read(_rlc->sockfd, payload, 1000);
         if (size > 0) {
             printf("receive len = %d\n", size);
-            _rlc->write_pdu(0, payload, size);
+            type = payload[0];
+            rnti = (((uint16_t)payload[1]) << 8) + ((uint16_t)payload[2]);
+            lcid = payload[3];
+            if (type == 0x01) {
+                printf("rnti = %d\n", rnti);
+                _rlc->set_rnti(rnti);
+            } else {
+                switch (rnti) {
+                case SRSLTE_MRNTI:
+                    _rlc->write_pdu_mch(lcid, payload+4, size-4);
+                case SRSLTE_PRNTI:
+                    _rlc->write_pdu_pcch(lcid, payload+4, size-4);
+                case SRSLTE_SIRNTI:
+                    _rlc->write_pdu_bcch_dlsch(lcid, payload+4, size-4);
+                default:
+                    _rlc->write_pdu(lcid, payload+4, size-4);
+                }
+            }
         } else {
             printf("no packet received\n");
             usleep(2000);
