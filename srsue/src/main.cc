@@ -39,7 +39,6 @@
 #include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
-#include "srslte/upper/rlc.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
@@ -316,7 +315,7 @@ void sig_int_handler(int signo) {
 }
 
 void *send_loop(void *arg) {
-    srslte::rlc* _rlc = (srslte::rlc*)arg;
+    srsue::rrc* _rrc = (srsue::rrc*)arg;
     struct sockaddr_in enb_addr;
     uint8_t *payload = new uint8_t[1000];
     uint32_t size;
@@ -334,23 +333,22 @@ void *send_loop(void *arg) {
     payload[5] = 0x18;
     payload[6] = 0x73;
 
-    send_len = sendto(_rlc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
+    send_len = sendto(_rrc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
 
     while(true) {
-        payload[0] = 0x00; // normal
-        size = _rlc->get_sdu(payload+1);
+        size = _rrc->get_sdu(payload);
         if (size == 0) { // queue is empty
             usleep(2000);
             continue;
         } else {
-            send_len = sendto(_rlc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
+            send_len = sendto(_rrc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
             // printf("send_len = %d\n", send_len);
         }
     }
 }
 
 void *recv_loop(void *arg) {
-    srslte::rlc* _rlc = (srslte::rlc*)arg;
+    srsue::rrc* _rrc = (srsue::rrc*)arg;
     uint8_t *payload = new uint8_t[1000];
     uint8_t type;
     uint8_t lcid;
@@ -358,7 +356,7 @@ void *recv_loop(void *arg) {
     uint32_t size;
     while (true) {
         printf("try to recv\n");
-        size = read(_rlc->sockfd, payload, 1000);
+        size = read(_rrc->sockfd, payload, 1000);
         if (size > 0) {
             printf("receive len = %d\n", size);
             type = payload[0];
@@ -366,18 +364,9 @@ void *recv_loop(void *arg) {
             lcid = payload[3];
             if (type == 0x01) {
                 printf("rnti = %d\n", rnti);
-                _rlc->set_rnti(rnti);
+                _rrc->set_rnti(rnti);
             } else {
-                switch (rnti) {
-                case SRSLTE_MRNTI:
-                    _rlc->write_pdu_mch(lcid, payload+4, size-4);
-                case SRSLTE_PRNTI:
-                    _rlc->write_pdu_pcch(lcid, payload+4, size-4);
-                case SRSLTE_SIRNTI:
-                    _rlc->write_pdu_bcch_dlsch(lcid, payload+4, size-4);
-                default:
-                    _rlc->write_pdu(lcid, payload+4, size-4);
-                }
+                printf("received");
             }
         } else {
             printf("no packet received\n");
@@ -470,8 +459,8 @@ int main(int argc, char *argv[])
   pthread_t send_tid;
   pthread_t recv_tid;
   pthread_create(&input, NULL, &input_loop, &args);
-  pthread_create(&send_tid, NULL, &send_loop, ue->get_rlc());
-  pthread_create(&recv_tid, NULL, &recv_loop, ue->get_rlc());
+  pthread_create(&send_tid, NULL, &send_loop, ue->get_rrc());
+  pthread_create(&recv_tid, NULL, &recv_loop, ue->get_rrc());
   printf("Attaching UE...\n");
   while (!ue->attach() && running) {
     sleep(1);

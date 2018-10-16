@@ -256,10 +256,6 @@ private:
 
 class rrc
   :public rrc_interface_nas
-  ,public rrc_interface_phy
-  ,public rrc_interface_mac
-  ,public rrc_interface_pdcp
-  ,public rrc_interface_rlc
   ,public srslte::timer_callback
   ,public thread
 {
@@ -267,9 +263,7 @@ public:
   rrc();
   ~rrc();
 
-  void init(rlc_interface_rrc *rlc_,
-            pdcp_interface_rrc *pdcp_,
-            nas_interface_rrc *nas_,
+  void init(nas_interface_rrc *nas_,
             usim_interface_rrc *usim_,
             gw_interface_rrc   *gw_,
             srslte::log *rrc_log_);
@@ -297,17 +291,6 @@ public:
                           srslte::byte_buffer_t *dedicatedInfoNAS);
   void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi);
 
-  // PHY interface
-  void in_sync();
-  void out_of_sync();
-  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci);
-
-  // MAC interface
-  void ho_ra_completed(bool ra_successful);
-  void release_pucch_srs();
-  void run_tti(uint32_t tti);
-  void ra_problem();
-
   // GW interface
   bool is_connected(); // this is also NAS interface
   bool have_drb();
@@ -318,6 +301,28 @@ public:
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
   void write_pdu_pcch(byte_buffer_t *pdu);
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
+
+  // Socket interface
+  int                   sockfd;
+  struct sockaddr_in    enb_addr;
+  struct sockaddr_in    ue_addr;
+  bool                  init_socket();
+  struct sockaddr_in    get_addr();
+
+  typedef struct {
+      uint8_t                 type;
+      struct sockaddr_in      ue_addr;
+      uint8_t                 lcid;
+      uint16_t                rnti;
+      srslte::byte_buffer_t*  pdu;
+  }rrc_pdu;
+
+  srslte::block_queue<rrc_pdu> pdu_queue;
+
+  uint16_t  rnti;
+  void set_rnti(uint16_t _rnti) { rnti = _rnti; }
+
+   uint32_t get_sdu(uint8_t *p);
 
 private:
 
@@ -337,10 +342,6 @@ private:
 
   srslte::byte_buffer_pool *pool;
   srslte::log *rrc_log;
-  phy_interface_rrc *phy;
-  mac_interface_rrc *mac;
-  rlc_interface_rrc *rlc;
-  pdcp_interface_rrc *pdcp;
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
   gw_interface_rrc    *gw;
@@ -387,12 +388,6 @@ private:
 
   std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT> srbs;
   std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
-
-  // RRC constants and timers
-  srslte::timers timers;
-  uint32_t n310_cnt, N310;
-  uint32_t n311_cnt, N311;
-  uint32_t t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
   typedef enum{
@@ -448,113 +443,6 @@ private:
   bool ho_start;
   bool go_idle;
   bool go_rlf;
-
-  // Measurements sub-class
-  class rrc_meas {
-  public:
-    void init(rrc *parent);
-    void reset();
-    bool parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *meas_config);
-    void new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti);
-    void run_tti(uint32_t tti);
-    bool timer_expired(uint32_t timer_id);
-    void ho_finish();
-    void delete_report(uint32_t earfcn, uint32_t pci);
-  private:
-
-    const static int NOF_MEASUREMENTS = 3;
-
-    typedef enum {RSRP = 0, RSRQ = 1, BOTH = 2} quantity_t;
-
-    typedef struct {
-      uint32_t pci;
-      float    q_offset;
-    } meas_cell_t;
-
-    typedef struct {
-      uint32_t                        earfcn;
-      float                           q_offset;
-      std::map<uint32_t, meas_cell_t> cells;
-    } meas_obj_t;
-
-    typedef struct {
-      uint32_t   interval;
-      uint32_t   max_cell;
-      uint32_t   amount;
-      quantity_t trigger_quantity;
-      quantity_t report_quantity;
-      LIBLTE_RRC_EVENT_EUTRA_STRUCT event;
-      enum {EVENT, PERIODIC} trigger_type;
-    } report_cfg_t;
-
-    typedef struct {
-      float    ms[NOF_MEASUREMENTS];
-      bool     triggered;
-      bool     timer_enter_triggered;
-      bool     timer_exit_triggered;
-      uint32_t enter_tti;
-      uint32_t exit_tti;
-    } meas_value_t;
-
-    typedef struct {
-      uint32_t nof_reports_sent;
-      uint32_t report_id;
-      uint32_t object_id;
-      bool     triggered;
-      uint32_t periodic_timer;
-      std::map<uint32_t, meas_value_t> cell_values; // Value for each PCI in this object
-    } meas_t;
-
-    std::map<uint32_t, meas_obj_t>    objects;
-    std::map<uint32_t, report_cfg_t>  reports_cfg;
-    std::map<uint32_t, meas_t>        active;
-
-    rrc               *parent;
-    srslte::log       *log_h;
-    phy_interface_rrc *phy;
-    srslte::timers    *timers;
-
-    uint32_t filter_k_rsrp, filter_k_rsrq;
-    float    filter_a[NOF_MEASUREMENTS];
-
-    meas_value_t pcell_measurement;
-
-    bool  s_measure_enabled;
-    float s_measure_value;
-
-    void stop_reports(meas_t *m);
-    void stop_reports_object(uint32_t object_id);
-    void remove_meas_object(uint32_t object_id);
-    void remove_meas_report(uint32_t report_id);
-    void remove_meas_id(uint32_t measId);
-    void remove_meas_id(std::map<uint32_t, meas_t>::iterator it);
-    void calculate_triggers(uint32_t tti);
-    void update_phy();
-    void L3_filter(meas_value_t *value, float rsrp[NOF_MEASUREMENTS]);
-    bool find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t **object, int *cell_idx);
-    float   range_to_value(quantity_t quant, uint8_t range);
-    uint8_t value_to_range(quantity_t quant, float value);
-    bool process_event(LIBLTE_RRC_EVENT_EUTRA_STRUCT *event, uint32_t tti,
-                       bool enter_condition, bool exit_condition,
-                       meas_t *m, meas_value_t *cell);
-
-    void generate_report(uint32_t meas_id);
-  };
-
-  rrc_meas measurements;
-
-  // Measurement object from phy
-  typedef struct {
-    float rsrp;
-    float rsrq;
-    uint32_t tti;
-    uint32_t earfcn;
-    uint32_t pci;
-  } phy_meas_t;
-
-  void process_phy_meas();
-  void process_new_phy_meas(phy_meas_t meas);
-  srslte::block_queue<phy_meas_t> phy_meas_q;
 
   // Cell selection/reselection functions/variables
   typedef struct {
@@ -617,8 +505,8 @@ private:
   void          radio_link_failure();
   void          leave_connected();
 
-  void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
-  void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
+//  void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
+//  void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
   void          handle_sib1();
   void          handle_sib2();
   void          handle_sib3();

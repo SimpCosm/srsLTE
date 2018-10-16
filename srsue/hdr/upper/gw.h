@@ -40,14 +40,13 @@
 namespace srsue {
 
 class gw
-    :public gw_interface_pdcp
-    ,public gw_interface_nas
+    :public gw_interface_nas
     ,public gw_interface_rrc
     ,public thread
 {
 public:
   gw();
-  void init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
+  void init(nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -70,7 +69,6 @@ private:
 
   static const int GW_THREAD_PRIO = 7;
 
-  pdcp_interface_gw  *pdcp;
   nas_interface_gw   *nas;
 
   srslte::byte_buffer_pool   *pool;

@@ -168,7 +168,7 @@ public:
   // UE metrics interface
   virtual bool get_metrics(ue_metrics_t &m) = 0;
 
-  virtual srslte::rlc* get_rlc() = 0;
+  virtual srsue::rrc* get_rrc() = 0;
 
   srslte::log_filter rf_log;
   rf_metrics_t     rf_metrics;

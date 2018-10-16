@@ -77,13 +77,11 @@ public:
   // UE metrics interface
   bool get_metrics(ue_metrics_t &m);
 
-  srslte::rlc* get_rlc();
+  srsue::rrc* get_rrc();
 private:
   virtual ~ue();
 
   srslte::nas_pcap   nas_pcap;
-  srslte::rlc        rlc;
-  srslte::pdcp       pdcp;
   srsue::rrc         rrc;
   srsue::nas         nas;
   srsue::gw          gw;

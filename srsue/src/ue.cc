@@ -104,14 +104,12 @@ bool ue::init(all_args_t *args_) {
     return false;
   }
 
-  rlc.init(&pdcp, &rrc, this, &rlc_log, 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
-  gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
+  gw.init(&nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
-  rrc.init(&rlc, &pdcp, &nas, usim, &gw, &rrc_log);
+  rrc.init(&nas, usim, &gw, &rrc_log);
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
@@ -139,8 +137,6 @@ void ue::stop()
 
 
     // Stop RLC and PDCP before GW to avoid locking on queue
-    rlc.stop();
-    pdcp.stop();
     gw.stop();
 
     usleep(1e5);
@@ -195,7 +191,7 @@ bool ue::mbms_service_start(uint32_t serv, uint32_t port)
   return rrc.mbms_service_start(serv, port);
 }
 
-srslte::rlc* ue::get_rlc() {
-  return &rlc;
+srsue::rrc* ue::get_rrc() {
+  return &rrc;
 }
 } // namespace srsue

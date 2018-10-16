@@ -47,10 +47,9 @@ gw::gw()
   default_netmask = true;
 }
 
-void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
+void gw::init(nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
 {
   pool    = srslte::byte_buffer_pool::get_instance();
-  pdcp    = pdcp_;
   nas     = nas_;
   gw_log  = gw_log_;
   cfg     = cfg_;
@@ -82,7 +81,7 @@ void gw::stop()
     if(if_up)
     {
       close(tun_fd);
-      
+
       // Wait thread to exit gracefully otherwise might leave a mutex locked
       int cnt=0;
       while(running && cnt<100) {
@@ -108,7 +107,7 @@ void gw::get_metrics(gw_metrics_t &m)
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
-  
+
   m.dl_tput_mbps = (dl_tput_bytes*8/(double)1e6)/secs;
   m.ul_tput_mbps = (ul_tput_bytes*8/(double)1e6)/secs;
   gw_log->info("RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
@@ -137,11 +136,11 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
   {
     gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
   }else{
-    int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
+    int n = write(tun_fd, pdu->msg, pdu->N_bytes);
     if(n > 0 && (pdu->N_bytes != (uint32_t)n))
     {
       gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
-    } 
+    }
   }
   pool->deallocate(pdu);
 }
@@ -163,7 +162,7 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     {
       gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
     }else{
-      int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
+      int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if(n > 0 && (pdu->N_bytes != (uint32_t)n))
       {
         gw_log->warning("DL TUN/TAP write failure\n");
@@ -319,7 +318,7 @@ void gw::run_thread()
   uint32_t attach_wait = 0;
 
   gw_log->info("GW IP packet receiver thread run_enable\n");
-
+/*
   running = true;
   while(run_enable)
   {
@@ -385,6 +384,7 @@ void gw::run_thread()
       break;
     }
   }
+  */
   running = false;
   gw_log->info("GW IP receiver thread exiting.\n");
 }
