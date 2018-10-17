@@ -82,7 +82,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")
-    ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
+    ("rrc.ue_category",     bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
+    ("rrc.enb_addr",        bpo::value<string>(&args->rrc.enb_addr)->default_value("127.0.1.1"),  "IP address of eNB for rrc connection")
+    ("rrc.enb_port",        bpo::value<uint32_t>(&args->rrc.enb_port)->default_value(8000),  "Port of eNB for rrc connection")
+    ("rrc.ue_bind_addr",    bpo::value<string>(&args->rrc.ue_bind_addr)->default_value("127.0.0.1"),  "Local IP address for eNB to connect")
+    ("rrc.ue_bind_port",    bpo::value<uint32_t>(&args->rrc.ue_bind_port)->default_value(6259),  "Local Port for eNB to connect")
 
     ("nas.apn",               bpo::value<string>(&args->nas.apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
     ("nas.user",              bpo::value<string>(&args->nas.apn_user)->default_value(""),  "Username for CHAP authentication")
@@ -301,8 +305,6 @@ static int sigcnt = 0;
 static bool running = true;
 static bool do_metrics = false;
 metrics_stdout metrics_screen;
-static bool show_mbms = false;
-static bool mbms_service_start = false;
 uint32_t serv, port;
 
 void sig_int_handler(int signo) {
@@ -316,62 +318,15 @@ void sig_int_handler(int signo) {
 
 void *send_loop(void *arg) {
     srsue::rrc* _rrc = (srsue::rrc*)arg;
-    struct sockaddr_in enb_addr;
-    uint8_t *payload = new uint8_t[1000];
-    uint32_t size;
-    uint32_t send_len;
-    bzero(&enb_addr, sizeof(enb_addr));
-    enb_addr.sin_family = AF_INET;
-    enb_addr.sin_addr.s_addr = inet_addr("127.0.1.1");
-    enb_addr.sin_port = htons(8000);
-
-    payload[0] = 0x01;
-    payload[1] = 127;
-    payload[2] = 0;
-    payload[3] = 0;
-    payload[4] = 1;
-    payload[5] = 0x18;
-    payload[6] = 0x73;
-
-    send_len = sendto(_rrc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
-
-    while(true) {
-        size = _rrc->get_sdu(payload);
-        if (size == 0) { // queue is empty
-            usleep(2000);
-            continue;
-        } else {
-            send_len = sendto(_rrc->sockfd, payload, 1000, 0, (struct sockaddr *)&enb_addr, sizeof(enb_addr));
-            // printf("send_len = %d\n", send_len);
-        }
+    while (true) {
+        _rrc->send_uplink();
     }
 }
 
 void *recv_loop(void *arg) {
     srsue::rrc* _rrc = (srsue::rrc*)arg;
-    uint8_t *payload = new uint8_t[1000];
-    uint8_t type;
-    uint8_t lcid;
-    uint16_t rnti;
-    uint32_t size;
     while (true) {
-        printf("try to recv\n");
-        size = read(_rrc->sockfd, payload, 1000);
-        if (size > 0) {
-            printf("receive len = %d\n", size);
-            type = payload[0];
-            rnti = (((uint16_t)payload[1]) << 8) + ((uint16_t)payload[2]);
-            lcid = payload[3];
-            if (type == 0x01) {
-                printf("rnti = %d\n", rnti);
-                _rrc->set_rnti(rnti);
-            } else {
-                printf("received");
-            }
-        } else {
-            printf("no packet received\n");
-            usleep(2000);
-        }
+        _rrc->recv_downlink();
     }
 }
 
@@ -396,7 +351,7 @@ void *input_loop(void *m) {
         running = false;
       }
     else if (0 == key.compare("mbms")) {
-      show_mbms = true;
+
     } else if (key.find("mbms_service_start") != string::npos) {
 
       char *dup = strdup(key.c_str());
@@ -413,7 +368,6 @@ void *input_loop(void *m) {
         continue;
       }
       port = atoi(p);
-      mbms_service_start = true;
       free(dup);
     }
    }
@@ -474,25 +428,9 @@ int main(int argc, char *argv[])
     if (args.gui.enable) {
       // ue->start_plot();
     }
-    // Auto-start MBMS service by default
-    if(args.expert.mbms_service > -1){
-      serv = args.expert.mbms_service;
-      port = 4321;
-      mbms_service_start = true;
-    }
   }
   int cnt=0;
   while (running) {
-    //
-    if(mbms_service_start) {
-      if(ue->mbms_service_start(serv, port)){
-        mbms_service_start = false;
-      }
-    }
-    if(show_mbms) {
-      show_mbms = false;
-      ue->print_mbms();
-    }
     if (args.expert.print_buffer_state) {
       cnt++;
       if (cnt==10) {

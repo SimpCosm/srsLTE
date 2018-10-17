@@ -24,7 +24,6 @@
  *
  */
 
-
 #include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
@@ -109,7 +108,7 @@ bool ue::init(all_args_t *args_) {
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
-  rrc.init(&nas, usim, &gw, &rrc_log);
+  rrc.init(&nas, usim, &gw, &rrc_log, args->rrc.enb_addr, args->rrc.enb_port, args->rrc.ue_bind_addr, args->rrc.ue_bind_port);
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
@@ -178,17 +177,6 @@ bool ue::get_metrics(ue_metrics_t &m)
     }
   }
   return false;
-}
-
-
-void ue::print_mbms()
-{
-  rrc.print_mbms();
-}
-
-bool ue::mbms_service_start(uint32_t serv, uint32_t port)
-{
-  return rrc.mbms_service_start(serv, port);
 }
 
 srsue::rrc* ue::get_rrc() {

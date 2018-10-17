@@ -162,9 +162,6 @@ public:
 
   virtual void print_pool() = 0;
 
-  virtual void print_mbms() = 0;
-  virtual bool mbms_service_start(uint32_t serv, uint32_t port) = 0;
-
   // UE metrics interface
   virtual bool get_metrics(ue_metrics_t &m) = 0;
 

@@ -38,8 +38,6 @@
 #include <pthread.h>
 
 #include "ue_base.h"
-#include "srslte/upper/rlc.h"
-#include "srslte/upper/pdcp.h"
 #include "upper/rrc.h"
 #include "upper/nas.h"
 #include "upper/gw.h"
@@ -69,8 +67,6 @@ public:
   bool attach();
   bool deattach();
   bool is_attached();
-  void print_mbms();
-  bool mbms_service_start(uint32_t serv, uint32_t port);
 
   void print_pool();
 
