@@ -47,9 +47,10 @@ gw::gw()
   default_netmask = true;
 }
 
-void gw::init(nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
+void gw::init(rrc_interface_gw *rrc_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
 {
   pool    = srslte::byte_buffer_pool::get_instance();
+  rrc     = rrc_;
   nas     = nas_;
   gw_log  = gw_log_;
   cfg     = cfg_;
@@ -342,7 +343,7 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_wait < ATTACH_WAIT_TOUT) {
+          while(run_enable && attach_wait < ATTACH_WAIT_TOUT) {
             if (!attach_wait) {
               gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
               if (!nas->attach_request()) {
@@ -360,10 +361,11 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_drb_enabled(cfg.lcid)) {
+          // if (pdcp->is_drb_enabled(cfg.lcid)) {
+          if (true) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(cfg.lcid, pdu);
+            rrc->write_sdu(cfg.lcid, pdu);
 
             do {
               pdu = pool_allocate;

@@ -224,12 +224,12 @@ public:
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
-// PDCP interface for GW
-class pdcp_interface_gw
+// RRC interface for GW
+class rrc_interface_gw
 {
 public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual bool is_drb_enabled(uint32_t lcid) = 0;
+//  virtual bool is_drb_enabled(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RRC
@@ -293,7 +293,7 @@ public:
   /* MAC calls RLC to get buffer state for a logical channel.
    * This function should return quickly. */
   virtual uint32_t get_buffer_state(uint32_t lcid) = 0;
-  virtual uint32_t get_total_buffer_state(uint32_t lcid) = 0; 
+  virtual uint32_t get_total_buffer_state(uint32_t lcid) = 0;
 
 
   const static int MAX_PDU_SEGMENTS = 20;
@@ -338,7 +338,7 @@ public:
 };
 
 
-/** MAC interface 
+/** MAC interface
  *
  */
 /* Interface PHY -> MAC */
@@ -347,12 +347,12 @@ class mac_interface_phy
 public:
   typedef struct {
       uint32_t nof_mbsfn_services;
-  } mac_phy_cfg_mbsfn_t; 
-    
-    
-    
+  } mac_phy_cfg_mbsfn_t;
+
+
+
   typedef struct {
-    uint32_t    pid;    
+    uint32_t    pid;
     uint32_t    tti;
     uint32_t    last_tti;
     bool        ndi[SRSLTE_MAX_CODEWORDS];
@@ -361,22 +361,22 @@ public:
     int         rv[SRSLTE_MAX_CODEWORDS];
     bool        tb_en[SRSLTE_MAX_CODEWORDS];
     bool        tb_cw_swap;
-    uint16_t    rnti; 
+    uint16_t    rnti;
     bool        is_from_rar;
     bool        is_sps_release;
     bool        has_cqi_request;
-    srslte_rnti_type_t rnti_type; 
-    srslte_phy_grant_t phy_grant; 
-  } mac_grant_t; 
-  
+    srslte_rnti_type_t rnti_type;
+    srslte_phy_grant_t phy_grant;
+  } mac_grant_t;
+
   typedef struct {
     bool                    decode_enabled[SRSLTE_MAX_TB];
     int                     rv[SRSLTE_MAX_TB];
-    uint16_t                rnti; 
-    bool                    generate_ack; 
+    uint16_t                rnti;
+    bool                    generate_ack;
     bool                    default_ack[SRSLTE_MAX_TB];
     // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
-    bool                  (*generate_ack_callback)(void*); 
+    bool                  (*generate_ack_callback)(void*);
     void                   *generate_ack_callback_arg;
     uint8_t                *payload_ptr[SRSLTE_MAX_TB];
     srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB];
@@ -387,15 +387,15 @@ public:
     bool                    tx_enabled;
     bool                    expect_ack;
     uint32_t                rv[SRSLTE_MAX_TB];
-    uint16_t                rnti; 
+    uint16_t                rnti;
     uint32_t                current_tx_nb;
     int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
     srslte_softbuffer_tx_t *softbuffers;
     srslte_phy_grant_t      phy_grant;
     uint8_t                *payload_ptr[SRSLTE_MAX_TB];
   } tb_action_ul_t;
-  
-  /* Indicate reception of UL grant. 
+
+  /* Indicate reception of UL grant.
    * payload_ptr points to memory where MAC PDU must be written by MAC layer */
   virtual void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) = 0;
 
@@ -407,27 +407,27 @@ public:
 
   /* Indicate reception of HARQ information only through PHICH.   */
   virtual void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) = 0;
-  
-  /* Indicate reception of DL grant. */ 
+
+  /* Indicate reception of DL grant. */
   virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
-  
+
   /* Indicate successful decoding of PDSCH TB. */
   virtual void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
-  
+
   /* Indicate successful decoding of BCH TB through PBCH */
-  virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
-  
+  virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;
+
   /* Indicate successful decoding of PCH TB through PDSCH */
-  virtual void pch_decoded_ok(uint32_t len) = 0;  
+  virtual void pch_decoded_ok(uint32_t len) = 0;
 
   /* Indicate successful decoding of MCH TB through PMCH */
   virtual void mch_decoded_ok(uint32_t len) = 0;
-  
+
   /* Communicate the number of mbsfn services available  */
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
-  
-  /* Function called every start of a subframe (TTI). Warning, this function is called 
-   * from a high priority thread and should terminate asap 
+
+  /* Function called every start of a subframe (TTI). Warning, this function is called
+   * from a high priority thread and should terminate asap
    */
 
 
@@ -456,11 +456,11 @@ public:
 class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
-  
+
   typedef struct {
-    LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT           main; 
-    LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
-    LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
+    LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT           main;
+    LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;
+    LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr;
     ul_harq_params_t                            ul_harq_params;
     uint32_t prach_config_index;
   } mac_cfg_t;
@@ -471,7 +471,7 @@ public:
   virtual void    bcch_start_rx(int si_window_start, int si_window_length) = 0;
 
   /* Instructs the MAC to start receiving PCCH */
-  virtual void    pcch_start_rx() = 0; 
+  virtual void    pcch_start_rx() = 0;
 
   /* RRC configures a logical channel */
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
@@ -486,7 +486,7 @@ public:
   virtual void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index) = 0;
   virtual void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg) = 0;
   virtual void get_config(mac_cfg_t *mac_cfg) = 0;
-  
+
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
   virtual void set_contention_id(uint64_t uecri) = 0;
   virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
@@ -500,28 +500,28 @@ public:
 };
 
 
-/** PHY interface 
+/** PHY interface
  *
  */
 
 typedef struct {
-  bool ul_pwr_ctrl_en; 
+  bool ul_pwr_ctrl_en;
   float prach_gain;
   int pdsch_max_its;
-  bool attach_enable_64qam; 
+  bool attach_enable_64qam;
   int nof_phy_threads;
-  
+
   int worker_cpu_mask;
   int sync_cpu_affinity;
-  
+
   uint32_t nof_rx_ant;
   std::string equalizer_mode;
-  int cqi_max; 
-  int cqi_fixed; 
-  float snr_ema_coeff; 
+  int cqi_max;
+  int cqi_fixed;
+  float snr_ema_coeff;
   std::string snr_estim_alg;
   bool cfo_is_doppler;
-  bool cfo_integer_enabled; 
+  bool cfo_integer_enabled;
   float cfo_correct_tol_hz;
   float cfo_pss_ema;
   float cfo_ref_ema;
@@ -544,7 +544,7 @@ typedef struct {
   bool pdsch_csi_enabled;
   uint32_t intra_freq_meas_len_ms;
   uint32_t intra_freq_meas_period_ms;
-} phy_args_t; 
+} phy_args_t;
 
 
 /* RAT agnostic Interface MAC -> PHY */
@@ -572,24 +572,24 @@ public:
 class phy_interface_mac : public phy_interface_mac_common
 {
 public:
-      
+
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
 
-  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
-  virtual int  prach_tx_tti() = 0;   
+  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;
+  virtual int  prach_tx_tti() = 0;
   /* Indicates the transmission of a SR signal in the next opportunity */
-  virtual void sr_send() = 0;  
-  virtual int  sr_last_tx_tti() = 0; 
+  virtual void sr_send() = 0;
+  virtual int  sr_last_tx_tti() = 0;
 
   /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */
   virtual void pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_ul_search_reset() = 0;
   virtual void pdcch_dl_search_reset() = 0;
-  
+
   virtual void set_mch_period_stop(uint32_t stop) = 0;
-  
+
 };
 
 class phy_interface_rrc
@@ -605,8 +605,8 @@ public:
     LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;
     LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT   ul_pwr_ctrl;
     LIBLTE_RRC_TDD_CONFIG_STRUCT                tdd_cnfg;
-    LIBLTE_RRC_ANTENNA_PORTS_COUNT_ENUM         ant_info;      
-  } phy_cfg_common_t; 
+    LIBLTE_RRC_ANTENNA_PORTS_COUNT_ENUM         ant_info;
+  } phy_cfg_common_t;
 
   typedef struct {
     LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT     mbsfn_subfr_cnfg;
@@ -615,23 +615,23 @@ public:
     LIBLTE_RRC_MCCH_MSG_STRUCT                  mcch;
   } phy_cfg_mbsfn_t;
 
-  
+
   typedef struct {
     LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT dedicated;
-    phy_cfg_common_t                            common; 
+    phy_cfg_common_t                            common;
     phy_cfg_mbsfn_t                             mbsfn;
-    bool                                        enable_64qam; 
-  } phy_cfg_t; 
+    bool                                        enable_64qam;
+  } phy_cfg_t;
 
   virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
   virtual uint32_t get_current_earfcn() = 0;
   virtual uint32_t get_current_pci() = 0;
 
   virtual void get_config(phy_cfg_t *phy_cfg) = 0;
-  virtual void set_config(phy_cfg_t *phy_cfg) = 0; 
+  virtual void set_config(phy_cfg_t *phy_cfg) = 0;
   virtual void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated) = 0;
-  virtual void set_config_common(phy_cfg_common_t *common) = 0; 
-  virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
+  virtual void set_config_common(phy_cfg_common_t *common) = 0;
+  virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0;
   virtual void set_config_64qam_en(bool enable) = 0;
   virtual void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) = 0;
   virtual void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13) = 0;
@@ -663,7 +663,7 @@ public:
   virtual void reset() = 0;
 
 };
-  
+
 
 } // namespace srsue
 

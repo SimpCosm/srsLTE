@@ -139,6 +139,12 @@ uint8_t security_128_eia1( uint8_t  *key,
                            uint32_t  msg_len,
                            uint8_t  *mac)
 {
+  printf("security||msg_len: %d\n", msg_len);
+  for (uint32_t i = 0; i < msg_len; i++) {
+    printf("0x%x ", msg[i]);
+  }
+  printf("\n");
+
   uint32_t msg_len_bits;
   uint32_t i;
   uint8_t *m_ptr;

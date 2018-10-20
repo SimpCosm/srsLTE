@@ -264,7 +264,7 @@ void rrc::send_ul_info_transfer(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause, byte_bu
   rrc_log->debug("Preparing RX Info Transfer\n");
 
   // not using rrc packet format anymore, just send it via socket.
-  rrc_pdu p = {SRSUE_UL_SIGNALING, RB_ID_SRB0, cause, nas_msg};
+  rrc_pdu p = {SRSUE_UL_ATTACH, RB_ID_SRB0, cause, nas_msg};
   pdu_queue.push(p);
 
 }
@@ -372,7 +372,8 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
   }
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;     //TODO
-  send_ul_info_transfer(cause, sdu);
+  rrc_pdu p = {SRSUE_UL_NORMAL, RB_ID_SRB0, cause, sdu};
+  pdu_queue.push(p);
 }
 
 
@@ -405,7 +406,12 @@ const std::string rrc::rb_id_str[] = {"SRB0", "SRB1", "SRB2",
 void rrc::send_uplink() {
     rrc_pdu pdu = pdu_queue.wait_pop();
     switch (pdu.type) {
-        case SRSUE_UL_SIGNALING:
+        case SRSUE_UL_ATTACH:
+            printf("send attach request\n");
+            send_attach(pdu);
+            break;
+        case SRSUE_UL_NORMAL:
+            printf("send normal request\n");
             send_signaling(pdu);
             break;
         case SRSUE_UL_DATA:
@@ -419,12 +425,13 @@ void rrc::send_uplink() {
 
 void rrc::recv_downlink() {
     srslte::byte_buffer_t *sdu = pool->allocate();
+    sdu->msg -= 18;
     ssize_t len = read(sockfd, sdu->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
     uint8_t type = sdu->msg[0];
     sdu->msg ++;
-    sdu->N_bytes --;
+    sdu->N_bytes = len-1;
     switch (type) {
-        case SRSUE_DL_SIGNALING:
+        case SRSUE_DL_NORMAL:
             handle_signaling(sdu);
             break;
         case SRSUE_DL_DATA:
@@ -442,7 +449,7 @@ void rrc::append_head(rrc_pdu pdu) {
     pdu.pdu->msg -= 4;
     memcpy(pdu.pdu->msg, &pdu.cause, 4);
     pdu.pdu->msg -= 2;
-    memcpy(pdu.pdu->msg, &pdu.type, 2);
+    memcpy(pdu.pdu->msg, &pdu.lcid, 2);
     pdu.pdu->msg -= 15;
     memcpy(pdu.pdu->msg, imsi, 15);
     pdu.pdu->msg -= 2;
@@ -453,9 +460,27 @@ void rrc::append_head(rrc_pdu pdu) {
     pdu.pdu->N_bytes += 4 + 2 + 15 + 2 + 4 + 1;
 }
 
+void rrc::send_attach(rrc_pdu pdu) {
+    append_head(pdu);
+    pdu.pdu->msg[0] = pdu.type;
+    for (int i = 0; i < pdu.pdu->N_bytes; i++) {
+        printf("0x%x ", pdu.pdu->msg[i]);
+        if (i == 27) {
+            printf("\n\n");
+        }
+    }
+    printf("\n");
+
+    ssize_t send_len = sendto(sockfd, pdu.pdu->msg, pdu.pdu->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(struct sockaddr));
+    if ((uint32_t)send_len != pdu.pdu->N_bytes) {
+        rrc_log->warning("Send Signaling, short of bytes, expected to send:%d, sent:%d\n", pdu.pdu->N_bytes, (int)send_len);
+    }
+    return ;
+}
+
 void rrc::send_signaling(rrc_pdu pdu) {
     append_head(pdu);
-    pdu.pdu->msg[0] = SRSUE_UL_SIGNALING;
+    pdu.pdu->msg[0] = SRSUE_UL_NORMAL;
     ssize_t send_len = sendto(sockfd, pdu.pdu->msg, pdu.pdu->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(struct sockaddr));
     if ((uint32_t)send_len != pdu.pdu->N_bytes) {
         rrc_log->warning("Send Signaling, short of bytes, expected to send:%d, sent:%d\n", pdu.pdu->N_bytes, (int)send_len);

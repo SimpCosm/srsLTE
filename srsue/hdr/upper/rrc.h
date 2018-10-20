@@ -42,12 +42,13 @@
 #include <map>
 #include <queue>
 
-#define SRSUE_UL_SIGNALING  0x01
-#define SRSUE_UL_DATA       0x02
+#define SRSUE_UL_ATTACH     0x01
+#define SRSUE_UL_NORMAL     0x02
+#define SRSUE_UL_DATA       0x03
 
-#define SRSUE_DL_SIGNALING  0x01
-#define SRSUE_DL_DATA       0x02
-#define SRSUE_DL_PAGING     0x03
+#define SRSUE_DL_PAGING     0x01
+#define SRSUE_DL_NORMAL  0x02
+#define SRSUE_DL_DATA       0x03
 
 typedef struct {
   uint32_t                      ue_category;
@@ -66,6 +67,7 @@ namespace srsue {
 
 class rrc
   :public rrc_interface_nas
+  ,public rrc_interface_gw
   ,public thread
 {
 public:
@@ -120,6 +122,7 @@ public:
 
   void send_uplink();
   void recv_downlink();
+  void send_attach(rrc_pdu pdu);
   void send_signaling(rrc_pdu pdu);
   void send_data(rrc_pdu pdu);
   void handle_signaling(srslte::byte_buffer_t *sdu);

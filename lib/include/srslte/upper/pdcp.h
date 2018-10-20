@@ -35,8 +35,7 @@
 namespace srslte {
 
 class pdcp
-    :public srsue::pdcp_interface_gw
-    ,public srsue::pdcp_interface_rlc
+    :public srsue::pdcp_interface_rlc
     ,public srsue::pdcp_interface_rrc
 {
 public:
@@ -78,7 +77,7 @@ public:
   void write_pdu_bcch_bch(byte_buffer_t *sdu);
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu);
   void write_pdu_pcch(byte_buffer_t *sdu);
-  
+
 
 private:
   srsue::rlc_interface_pdcp *rlc;

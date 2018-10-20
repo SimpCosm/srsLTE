@@ -106,7 +106,7 @@ bool ue::init(all_args_t *args_) {
 
   srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
-  gw.init(&nas, &gw_log, 3 /* RB_ID_DRB1 */);
+  gw.init(&rrc, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   rrc.init(&nas, usim, &gw, &rrc_log, args->rrc.enb_addr, args->rrc.enb_port, args->rrc.ue_bind_addr, args->rrc.ue_bind_port);
 

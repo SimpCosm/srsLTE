@@ -46,7 +46,7 @@ class gw
 {
 public:
   gw();
-  void init(nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
+  void init(rrc_interface_gw *rrc_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -69,6 +69,7 @@ private:
 
   static const int GW_THREAD_PRIO = 7;
 
+  rrc_interface_gw   *rrc;
   nas_interface_gw   *nas;
 
   srslte::byte_buffer_pool   *pool;

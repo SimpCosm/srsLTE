@@ -400,6 +400,11 @@ void nas::integrity_generate(uint8_t *key_128,
                              uint8_t *msg,
                              uint32_t msg_len,
                              uint8_t *mac) {
+  printf("msg_len: %d\n", msg_len);
+  for (uint32_t i = 0; i < msg_len; i++) {
+    printf("0x%x ", msg[i]);
+  }
+  printf("\n");
   switch (ctxt.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
@@ -924,6 +929,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
                 rrc->get_rb_name(lcid).c_str());
+  printf("send security mode complete len %d\n", pdu->N_bytes);
   rrc->write_sdu(lcid, pdu);
   ctxt.tx_count++;
 }
