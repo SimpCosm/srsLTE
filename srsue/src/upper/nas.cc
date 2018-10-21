@@ -153,10 +153,6 @@ bool nas::attach_request() {
       }
       break;
     case EMM_STATE_REGISTERED:
-      if (rrc->is_connected()) {
-        nas_log->info("NAS is already registered and RRC connected\n");
-        return true;
-      } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
         if (rrc_connect()) {
           nas_log->info("NAS attached successfully.\n");
@@ -164,8 +160,7 @@ bool nas::attach_request() {
         } else {
           nas_log->error("Could not attach from attach_request\n");
         }
-      }
-      break;
+        break;
     default:
       nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -203,11 +198,6 @@ void nas::set_barring(barring_t barring) {
 /* Internal function that requests RRC connection, waits for positive or negative response and returns true/false
  */
 bool nas::rrc_connect() {
-  if (rrc->is_connected()) {
-    nas_log->info("Already connected\n");
-    return true;
-  }
-
   // Generate service request or attach request message
   byte_buffer_t *dedicatedInfoNAS = pool_allocate;
   if (state == EMM_STATE_REGISTERED) {
@@ -400,11 +390,6 @@ void nas::integrity_generate(uint8_t *key_128,
                              uint8_t *msg,
                              uint32_t msg_len,
                              uint8_t *mac) {
-  printf("msg_len: %d\n", msg_len);
-  for (uint32_t i = 0; i < msg_len; i++) {
-    printf("0x%x ", msg[i]);
-  }
-  printf("\n");
   switch (ctxt.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;

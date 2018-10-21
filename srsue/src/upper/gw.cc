@@ -319,7 +319,7 @@ void gw::run_thread()
   uint32_t attach_wait = 0;
 
   gw_log->info("GW IP packet receiver thread run_enable\n");
-/*
+
   running = true;
   while(run_enable)
   {
@@ -366,7 +366,6 @@ void gw::run_thread()
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
             rrc->write_sdu(cfg.lcid, pdu);
-
             do {
               pdu = pool_allocate;
               if (!pdu) {
@@ -386,7 +385,6 @@ void gw::run_thread()
       break;
     }
   }
-  */
   running = false;
   gw_log->info("GW IP receiver thread exiting.\n");
 }

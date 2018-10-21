@@ -226,11 +226,6 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
     return false;
   }
 
-  if (state != RRC_STATE_IDLE) {
-    rrc_log->warning("Requested RRC connection establishment while not in IDLE\n");
-    return false;
-  }
-
   // Pretend that rrc connection already setup
   pthread_mutex_lock(&mutex);
 
@@ -372,8 +367,13 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
   }
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;     //TODO
-  rrc_pdu p = {SRSUE_UL_NORMAL, RB_ID_SRB0, cause, sdu};
-  pdu_queue.push(p);
+  if (lcid == 3) {
+      rrc_pdu p = {SRSUE_UL_DATA, lcid, cause, sdu};
+      pdu_queue.push(p);
+  } else {
+      rrc_pdu p = {SRSUE_UL_NORMAL, lcid, cause, sdu};
+      pdu_queue.push(p);
+  }
 }
 
 
@@ -463,13 +463,6 @@ void rrc::append_head(rrc_pdu pdu) {
 void rrc::send_attach(rrc_pdu pdu) {
     append_head(pdu);
     pdu.pdu->msg[0] = pdu.type;
-    for (int i = 0; i < pdu.pdu->N_bytes; i++) {
-        printf("0x%x ", pdu.pdu->msg[i]);
-        if (i == 27) {
-            printf("\n\n");
-        }
-    }
-    printf("\n");
 
     ssize_t send_len = sendto(sockfd, pdu.pdu->msg, pdu.pdu->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(struct sockaddr));
     if ((uint32_t)send_len != pdu.pdu->N_bytes) {
@@ -489,7 +482,14 @@ void rrc::send_signaling(rrc_pdu pdu) {
 }
 
 void rrc::send_data(rrc_pdu pdu) {
-
+    append_head(pdu);
+    pdu.pdu->msg[0] = SRSUE_UL_DATA;
+    ssize_t send_len = sendto(sockfd, pdu.pdu->msg, pdu.pdu->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(struct sockaddr));
+    if ((uint32_t)send_len != pdu.pdu->N_bytes) {
+        rrc_log->warning("Send Data, short of bytes, expected to send:%d, sent:%d\n", pdu.pdu->N_bytes, (int)send_len);
+    }
+    printf("send_len: %d\n", send_len);
+    return ;
 }
 
 void rrc::handle_signaling(srslte::byte_buffer_t *sdu) {
