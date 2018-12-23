@@ -185,8 +185,8 @@ private:
   void send_authentication_response(const uint8_t* res, const size_t res_len);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
-  void gen_pdu_connectivity_protocol_config_opts(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *msg);
-  void gen_pdu_connectivity_protocol_config_opt(LIBLTE_MME_PROTOCOL_CONFIG_STRUCT *opt,
+  void gen_pdn_connectivity_protocol_config_opts(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *msg);
+  void gen_pdn_connectivity_protocol_config_opt(LIBLTE_MME_PROTOCOL_CONFIG_STRUCT *opt,
                                                 uint16_t id,
                                                 uint8_t len,
                                                 uint8_t *contents);
