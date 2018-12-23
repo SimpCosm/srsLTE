@@ -91,6 +91,7 @@ public:
   // UE interface
   bool attach_request();
   bool deattach_request();
+  bool pdn_request();
 
   // PCAP
   void start_pcap(srslte::nas_pcap *pcap_);
@@ -173,10 +174,12 @@ private:
   void parse_service_reject(uint32_t lcid, byte_buffer_t *pdu);
   void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
   void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_activate_default_eps_bearer_context_request(uint32_t lcid, byte_buffer_t* pdu);
 
   // Packet generators
   void gen_attach_request(byte_buffer_t *msg);
   void gen_service_request(byte_buffer_t *msg);
+  void gen_pdn_request(byte_buffer_t *msg);
 
   // Senders
   void send_identity_response();
@@ -184,7 +187,7 @@ private:
   void send_esm_information_response(const uint8 proc_transaction_id);
   void send_authentication_response(const uint8_t* res, const size_t res_len);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
-  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
+  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg, bool have_apn);
   void gen_pdu_connectivity_protocol_config_opts(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *msg);
   void gen_pdu_connectivity_protocol_config_opt(LIBLTE_MME_PROTOCOL_CONFIG_STRUCT *opt,
                                                 uint16_t id,

@@ -37,6 +37,7 @@
 #include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
+using std::cout;
 
 namespace srsue {
 
@@ -244,6 +245,37 @@ bool nas::rrc_connect() {
   return false;
 }
 
+bool nas::pdn_request() {
+  byte_buffer_t *dedicatedInfoNAS = pool_allocate;
+  gen_pdn_request(dedicatedInfoNAS);
+  rrc->write_sdu(2, dedicatedInfoNAS);
+  return true;
+}
+
+void nas::gen_pdn_request(byte_buffer_t *msg) {
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in gen_attach_request().\n");
+    return;
+  }
+
+  byte_buffer_t *dedicatedInfoNAS = pool_allocate;
+  gen_pdn_connectivity_request((LIBLTE_BYTE_MSG_STRUCT*)&dedicatedInfoNAS, true);
+  liblte_mme_pack_security_protected_nas_msg((LIBLTE_BYTE_MSG_STRUCT*)&dedicatedInfoNAS,
+                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                       ctxt.tx_count,
+                                       (LIBLTE_BYTE_MSG_STRUCT *) msg);
+
+ integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &msg->msg[5],
+                       msg->N_bytes - 5,
+                       &msg->msg[1]);
+  if (have_ctxt) {
+    ctxt.tx_count++;
+  }
+}
+
 void nas::select_plmn() {
 
   plmn_is_selected = false;
@@ -339,6 +371,9 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       break;
     case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
       parse_emm_information(lcid, pdu);
+      break;
+    case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST:
+      parse_activate_default_eps_bearer_context_request(lcid, pdu);
       break;
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
@@ -563,7 +598,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
   liblte_mme_unpack_attach_accept_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &attach_accept);
 
-  if (attach_accept.eps_attach_result == LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY) {
+  if (attach_accept.eps_attach_result == LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY ||
+          attach_accept.eps_attach_result == 0x02) {
     //FIXME: Handle t3412.unit
     //FIXME: Handle tai_list
     if (attach_accept.guti_present) {
@@ -698,6 +734,131 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     pool->deallocate(pdu);
   }
 }
+
+void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, byte_buffer_t *pdu) {
+    byte_buffer_t* msg = pool_allocate;
+    int len;
+    uint8_t* point;
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return;
+  }
+
+  if (pdu->N_bytes <= 5) {
+    nas_log->error("Invalid activate default bearer PDU size (%d)\n", pdu->N_bytes);
+    return;
+  }
+  cout<<"New default bearer\n";
+
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
+  ZERO_OBJECT(act_def_eps_bearer_context_req);
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept;
+  ZERO_OBJECT(act_def_eps_bearer_context_accept);
+
+  nas_log->info("Received tach Accept\n");
+
+  pdu->N_bytes -= 6;
+  len = pdu->N_bytes;
+  pdu->msg += 6;
+  point = pdu->msg;
+  pdu->reset();
+  pdu->N_bytes = len;
+  printf("start: 0x%x\n", *pdu->msg);
+  memcpy(pdu->msg, point, len);
+  liblte_mme_unpack_activate_default_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu,
+                                                                      &act_def_eps_bearer_context_req);
+
+    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
+
+      nas_log->info("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
+                    act_def_eps_bearer_context_req.apn.apn,
+                    act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[3]);
+
+      nas_log->console("Network attach successful. IP: %u.%u.%u.%u\n",
+                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[3]);
+
+      // Setup GW
+      char *err_str = NULL;
+      if (gw->setup_if_addr(ip_addr, err_str)) {
+        nas_log->error("Failed to set gateway address - %s\n", err_str);
+      }
+    } else {
+        cout<<"Not handling wrong ipvx\n";
+      nas_log->error("Not handling IPV6 or IPV4V6\n");
+      pool->deallocate(pdu);
+      return;
+    }
+    eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
+    if (act_def_eps_bearer_context_req.transaction_id_present) {
+      transaction_id = act_def_eps_bearer_context_req.proc_transaction_id;
+    }
+
+    // Search for DNS entry in protocol config options
+    if (act_def_eps_bearer_context_req.protocol_cnfg_opts_present) {
+      for (uint32_t i = 0; i < act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts; i++) {
+        if (act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_DNS_SERVER_IPV4_ADDRESS) {
+          uint32_t dns_addr = 0;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0] << 24;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1] << 16;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2] << 8;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3];
+          nas_log->info("DNS: %u.%u.%u.%u\n",
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3]);
+        }
+      }
+    }
+
+    state = EMM_STATE_REGISTERED;
+
+    ctxt.rx_count++;
+
+    // Send EPS bearer context accept and attach complete
+    act_def_eps_bearer_context_accept.eps_bearer_id = eps_bearer_id;
+    act_def_eps_bearer_context_accept.proc_transaction_id = transaction_id;
+    act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
+    pdu->reset();
+    msg->reset();
+    liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
+                                        (LIBLTE_BYTE_MSG_STRUCT *) msg);
+    liblte_mme_pack_security_protected_nas_msg((LIBLTE_BYTE_MSG_STRUCT*)msg,
+                                        LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                        ctxt.tx_count,
+                                        (LIBLTE_BYTE_MSG_STRUCT*) pdu);
+    // Write NAS pcap
+    if (pcap != NULL) {
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
+
+    cipher_encrypt(pdu);
+    integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
+
+    // Instruct RRC to enable capabilities
+    cout<<"Sending Bearer\n";
+    nas_log->info("Sending Bearer Complete\n");
+    rrc->write_sdu(lcid, pdu);
+    ctxt.tx_count++;
+
+}
+
+
 
 void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej;
@@ -943,6 +1104,9 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->console("%s\n", str.c_str());
   ctxt.rx_count++;
   pool->deallocate(pdu);
+  if (pdn_request()) {
+    nas_log->info("NAS pdn connectivity request successfully.\n");
+  }
 }
 
 /*******************************************************************************
@@ -959,8 +1123,8 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
 
   nas_log->info("Generating attach request\n");
 
-  attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
-
+  //attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
+    attach_req.eps_attach_type = 0x02;
   for (u_int32_t i = 0; i < 8; i++) {
     attach_req.ue_network_cap.eea[i] = eea_caps[i];
     attach_req.ue_network_cap.eia[i] = eia_caps[i];
@@ -984,12 +1148,14 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
   attach_req.ms_cm3_present = false;
   attach_req.supported_codecs_present = false;
   attach_req.additional_update_type_present = false;
-  attach_req.voice_domain_pref_and_ue_usage_setting_present = false;
+  attach_req.voice_domain_pref_and_ue_usage_setting_present = true;
   attach_req.device_properties_present = false;
   attach_req.old_guti_type_present = false;
+  // Voice domain pref and ue usage setting present
+  attach_req.voice_domain_pref_and_ue_usage_setting = {LIBLTE_MME_UE_USAGE_SETTING_VOICE_CENTRIC, LIBLTE_MME_VOICE_DOMAIN_PREF_PS_ONLY};
 
   // ESM message (PDN connectivity request) for first default bearer
-  gen_pdn_connectivity_request(&attach_req.esm_msg);
+  gen_pdn_connectivity_request(&attach_req.esm_msg, false);
 
   // GUTI or IMSI attach
   if(have_guti && have_ctxt) {
@@ -1036,7 +1202,6 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
   }
 }
 
-
 void nas::gen_service_request(byte_buffer_t *msg) {
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in gen_service_request().\n");
@@ -1072,10 +1237,11 @@ void nas::gen_service_request(byte_buffer_t *msg) {
   ctxt.tx_count++;
 }
 
-void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
+void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg, bool have_apn) {
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
   ZERO_OBJECT(pdn_con_req);
 
+  std::cout<<"Generationg PDN Connectivity Request\n";
   nas_log->info("Generating PDN Connectivity Request\n");
 
   // Set the PDN con req parameters
@@ -1083,7 +1249,12 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
   pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
-  pdn_con_req.apn_present = false;
+  if (have_apn) {
+    pdn_con_req.apn_present = true;
+    strcpy(pdn_con_req.apn.apn, "ims");
+  } else {
+    pdn_con_req.apn_present = false;
+  }
 
   // Set the optional flags
   if (cfg.apn == "") {
@@ -1096,14 +1267,13 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
   pdn_con_req.protocol_cnfg_opts_present = true;// This should be True
   pdn_con_req.device_properties_present = false;
+  gen_pdu_connectivity_protocol_config_opts(&pdn_con_req);
 
   // Pack the message
   liblte_mme_pack_pdn_connectivity_request_msg(&pdn_con_req, msg);
 }
 // Abort default bearer, we alloc ims bearer while trying to attach 2018.12.23
 void nas::gen_pdu_connectivity_protocol_config_opts(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT* msg) {
-    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT cnfg_opts;
-    LIBLTE_MME_PROTOCOL_CONFIG_STRUCT single_opt;
     uint32_t count = 0;
     uint8_t IP_Control_Protocol[] = {0x01,0x00,0x00,0x10,0x81,0x06,0x00,0x00,0x00,0x00,0x83,0x06,0x00,0x00,0x00,0x00};
     gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x8021, 0x10, IP_Control_Protocol); // IP Control
