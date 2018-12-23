@@ -1094,11 +1094,33 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
     pdn_con_req.esm_info_transfer_flag = LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_REQUIRED;
   }
 
-  pdn_con_req.protocol_cnfg_opts_present = false;
+  pdn_con_req.protocol_cnfg_opts_present = true;// This should be True
   pdn_con_req.device_properties_present = false;
 
   // Pack the message
   liblte_mme_pack_pdn_connectivity_request_msg(&pdn_con_req, msg);
+}
+// Abort default bearer, we alloc ims bearer while trying to attach 2018.12.23
+void nas::gen_pdu_connectivity_protocol_config_opts(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT* msg) {
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT cnfg_opts;
+    LIBLTE_MME_PROTOCOL_CONFIG_STRUCT single_opt;
+    uint32_t count = 0;
+    uint8_t IP_Control_Protocol[] = {0x01,0x00,0x00,0x10,0x81,0x06,0x00,0x00,0x00,0x00,0x83,0x06,0x00,0x00,0x00,0x00};
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x8021, 0x10, IP_Control_Protocol); // IP Control
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x000d, 0x00, NULL); // DNS Server
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x000c, 0x00, NULL); // P-CSCF Server
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x0002, 0x00, NULL); // IM CN Subsystem Signaling Flag
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x000a, 0x00, NULL); // IP address allocation via NAS
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x0005, 0x00, NULL); // MS Support of Network Requested Bearer Control indicator
+    gen_pdu_connectivity_protocol_config_opt(&msg->protocol_cnfg_opts.opt[count ++], 0x0010, 0x00, NULL); // IPV4 Link MTU Request
+    msg->protocol_cnfg_opts.N_opts = count;
+}
+
+void nas::gen_pdu_connectivity_protocol_config_opt(LIBLTE_MME_PROTOCOL_CONFIG_STRUCT* opt, uint16_t _id, uint8_t _len, uint8_t* _contents) {
+    opt->id = _id;
+    opt->len = _len;
+    if(_contents != NULL)
+        memcpy(opt->contents, _contents, _len);
 }
 
 void nas::send_security_mode_reject(uint8_t cause) {

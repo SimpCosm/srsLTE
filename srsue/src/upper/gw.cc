@@ -339,6 +339,13 @@ void gw::run_thread()
       // Warning: Accept only IPv4 packets
       if (ip_pkt->version == 4) {
         // Check if entire packet was received
+        //
+
+        struct sockaddr_in s, d;
+        inet_pton(AF_INET, "192.168.4.1", &(d.sin_addr));
+        inet_pton(AF_INET, "192.168.2.2", &(s.sin_addr));
+        memcpy(&ip_pkt->saddr, &s.sin_addr, 4);
+        memcpy(&ip_pkt->daddr, &d.sin_addr, 4);
         if(ntohs(ip_pkt->tot_len) == pdu->N_bytes)
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
@@ -346,9 +353,9 @@ void gw::run_thread()
           while(run_enable && attach_wait < ATTACH_WAIT_TOUT) {
             if (!attach_wait) {
               gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
-              if (!nas->attach_request()) {
-                gw_log->warning("Could not re-establish the connection\n");
-              }
+              //if (!nas->attach_request()) {
+              //  gw_log->warning("Could not re-establish the connection\n");
+              //}
             }
             usleep(100000);
             attach_wait++;
