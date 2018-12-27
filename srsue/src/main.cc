@@ -87,6 +87,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rrc.enb_port",        bpo::value<uint32_t>(&args->rrc.enb_port)->default_value(8000),  "Port of eNB for rrc connection")
     ("rrc.ue_bind_addr",    bpo::value<string>(&args->rrc.ue_bind_addr)->default_value("127.0.0.1"),  "Local IP address for eNB to connect")
     ("rrc.ue_bind_port",    bpo::value<uint32_t>(&args->rrc.ue_bind_port)->default_value(6259),  "Local Port for eNB to connect")
+    ("rrc.ue_gate_addr",    bpo::value<string>(&args->rrc.ue_gate_addr)->default_value("127.0.0.1"),  "Local IP address for eNB to connect")
+    ("rrc.ue_gate_port",    bpo::value<uint32_t>(&args->rrc.ue_gate_port)->default_value(5060),  "Local Port for eNB to connect")
 
     ("nas.apn",               bpo::value<string>(&args->nas.apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
     ("nas.user",              bpo::value<string>(&args->nas.apn_user)->default_value(""),  "Username for CHAP authentication")

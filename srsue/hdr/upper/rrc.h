@@ -59,6 +59,8 @@ typedef struct {
   uint32_t                      enb_port;
   std::string                   ue_bind_addr;
   uint32_t                      ue_bind_port;
+  std::string                   ue_gate_addr;
+  uint32_t                      ue_gate_port;
 }rrc_args_t;
 
 using srslte::byte_buffer_t;
@@ -81,7 +83,9 @@ public:
             std::string enb_addr,
             uint32_t enb_port,
             std::string ue_bind_addr,
-            uint32_t ue_bind_port);
+            uint32_t ue_bind_port,
+            std::string ue_gate_ip_addr,
+            uint32_t ue_gate_port);
 
   void stop();
 
@@ -110,6 +114,7 @@ public:
   int                   sockfd;
   struct sockaddr_in    enb_addr;
   struct sockaddr_in    ue_addr;
+  struct sockaddr_in    ue_gate_addr;
 
   typedef struct {
       uint8_t                               type;

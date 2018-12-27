@@ -106,9 +106,13 @@ bool ue::init(all_args_t *args_) {
 
   srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
-  gw.init(&rrc, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
+  // gw.init(&rrc, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
+  gw.init(&rrc, &nas, &gw_log, 4 /* RB_ID_DRB2 */); //20181227
   gw.set_netmask(args->expert.ip_netmask);
-  rrc.init(&nas, usim, &gw, &rrc_log, args->rrc.enb_addr, args->rrc.enb_port, args->rrc.ue_bind_addr, args->rrc.ue_bind_port);
+  rrc.init(&nas, usim, &gw, &rrc_log,
+          args->rrc.enb_addr, args->rrc.enb_port,
+          args->rrc.ue_bind_addr, args->rrc.ue_bind_port,
+          args->rrc.ue_gate_addr, args->rrc.ue_gate_port);
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);

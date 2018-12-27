@@ -57,7 +57,7 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
 
   // NAS interface
-  srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
+  srslte::error_t setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -80,18 +80,21 @@ private:
   bool                running;
   bool                run_enable;
   int32               tun_fd;
+  int32               tun_ims_gate;
   struct ifreq        ifr;
   int32               sock;
   bool                if_up;
+  bool                if_ims_up;
 
   uint32_t            current_ip_addr;
+  uint32_t            ims_gate_ip_addr;
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;
   struct timeval      metrics_time[3];
 
   void                run_thread();
-  srslte::error_t     init_if(char *err_str);
+  srslte::error_t     init_if(char *err_str, int32& fd, bool& up, std::string if_name);
 
   // MBSFN
   int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor

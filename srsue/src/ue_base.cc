@@ -62,9 +62,6 @@ ue_base::ue_base() {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
 
-  // load FFTW wisdom
-  srslte_dft_load();
-
   pool = byte_buffer_pool::get_instance();
 }
 
@@ -74,9 +71,6 @@ ue_base::~ue_base() {
 
 void ue_base::cleanup(void)
 {
-  // save FFTW wisdom
-  srslte_dft_exit();
-
   pthread_mutex_lock(&ue_instance_mutex);
   if(NULL != instance) {
     delete instance;

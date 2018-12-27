@@ -47,7 +47,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
+  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), ip_addr(0), ip_ims_addr(0), eps_bearer_id(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -646,7 +646,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
       // Setup GW
       char *err_str = NULL;
-      if (gw->setup_if_addr(ip_addr, err_str)) {
+      if (gw->setup_if_addr(ip_addr, 0x01, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
     } else {
@@ -769,10 +769,10 @@ void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, byte_
                                                                       &act_def_eps_bearer_context_req);
 
     if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
+      ip_ims_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
+      ip_ims_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
+      ip_ims_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
+      ip_ims_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
 
       nas_log->info("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
                     act_def_eps_bearer_context_req.apn.apn,
@@ -789,7 +789,7 @@ void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, byte_
 
       // Setup GW
       char *err_str = NULL;
-      if (gw->setup_if_addr(ip_addr, err_str)) {
+      if (gw->setup_if_addr(ip_ims_addr, 0x02, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
     } else {

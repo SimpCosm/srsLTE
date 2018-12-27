@@ -133,6 +133,7 @@ private:
   nas_sec_ctxt ctxt;
 
   uint32_t ip_addr;
+  uint32_t ip_ims_addr;
   uint8_t eps_bearer_id;
 
   uint8_t chap_id;

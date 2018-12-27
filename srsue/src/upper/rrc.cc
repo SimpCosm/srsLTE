@@ -84,7 +84,9 @@ void rrc::init(nas_interface_rrc *nas_,
                std::string enb_ip_addr,
                uint32_t enb_port,
                std::string ue_bind_addr,
-               uint32_t ue_bind_port)
+               uint32_t ue_bind_port,
+               std::string ue_gate_ip_addr,
+               uint32_t ue_gate_port)
 {
   pool = byte_buffer_pool::get_instance();
   nas = nas_;
@@ -117,6 +119,11 @@ void rrc::init(nas_interface_rrc *nas_,
   enb_addr.sin_family = AF_INET;
   enb_addr.sin_addr.s_addr = inet_addr(enb_ip_addr.c_str());
   enb_addr.sin_port = htons(enb_port);
+
+  bzero(&ue_gate_addr, sizeof(ue_gate_addr));
+  ue_gate_addr.sin_family = AF_INET;
+  ue_gate_addr.sin_addr.s_addr = inet_addr(ue_gate_ip_addr.c_str());
+  ue_gate_addr.sin_port = htons(ue_gate_port);
 
   bzero(&ue_addr, sizeof(ue_addr));
   ue_addr.sin_family = AF_INET;
@@ -367,7 +374,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
   }
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;     //TODO
-  if (lcid == 3) {
+  if (lcid >= 3) {
       rrc_pdu p = {SRSUE_UL_DATA, lcid, cause, sdu};
       pdu_queue.push(p);
   } else {
@@ -504,7 +511,15 @@ void rrc::handle_signaling(srslte::byte_buffer_t *sdu) {
 }
 
 void rrc::handle_data(srslte::byte_buffer_t *sdu) {
-
+    printf("send data to ue gate\n");
+    sdu->msg += 15 + 2 + 28;
+    sdu->N_bytes -= 15 + 2 + 28;
+    ssize_t send_len = sendto(sockfd, sdu->msg,sdu->N_bytes, 0, (struct sockaddr*)&ue_gate_addr, sizeof(struct sockaddr));
+    if ((uint32_t)send_len != sdu->N_bytes) {
+        rrc_log->warning("Send Data, short of bytes, expected to send:%d, sent:%d\n", sdu->N_bytes, (int)send_len);
+    }
+    printf("send_len: %d\n", send_len);
+    return ;
 }
 
 void rrc::handle_paging(srslte::byte_buffer_t *sdu) {
