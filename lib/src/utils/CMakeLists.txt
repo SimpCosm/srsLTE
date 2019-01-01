@@ -18,8 +18,11 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(upper)
-add_subdirectory(utils)
-#add_subdirectory(radio)
+file(GLOB SOURCES "*.c")
+add_library(srslte_utils STATIC ${SOURCES})
+
+#add_subdirectory(test)
+
+target_include_directories(srslte_utils PUBLIC ${SEC_INCLUDE_DIRS})
+target_link_libraries(srslte_utils ${SEC_LIBRARIES})
+install(TARGETS srslte_utils DESTINATION ${LIBRARY_DIR})

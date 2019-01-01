@@ -32,9 +32,8 @@ endif (RPATH)
 add_executable(srsue main.cc ue_base.cc ue.cc metrics_stdout.cc metrics_csv.cc)
 target_link_libraries(srsue   srsue_upper
                               srslte_common
-                              srslte_phy
+                              srslte_utils
                               srslte_upper
-                              srslte_radio
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 

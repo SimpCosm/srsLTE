@@ -115,7 +115,7 @@ bool ue::init(all_args_t *args_) {
           args->rrc.ue_gate_addr, args->rrc.ue_gate_port);
 
   // Get current band from provided EARFCN
-  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+  // args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);  // 20190101
   args->rrc.nof_supported_bands = 1;
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
   rrc.set_args(&args->rrc);
