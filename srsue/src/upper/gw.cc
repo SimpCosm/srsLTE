@@ -336,9 +336,6 @@ void gw::run_thread()
     return;
   }
 
-  const static uint32_t ATTACH_WAIT_TOUT = 40; // 4 sec
-  uint32_t attach_wait = 0;
-
   gw_log->info("GW IP packet receiver thread run_enable\n");
 
   running = true;
@@ -365,19 +362,6 @@ void gw::run_thread()
         if(ntohs(ip_pkt->tot_len) == pdu->N_bytes)
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
-
-          while(run_enable && attach_wait < ATTACH_WAIT_TOUT) {
-            if (!attach_wait) {
-              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
-              //if (!nas->attach_request()) {
-              //  gw_log->warning("Could not re-establish the connection\n");
-              //}
-            }
-            usleep(100000);
-            attach_wait++;
-          }
-
-          attach_wait = 0;
 
           if (!run_enable) {
             break;
