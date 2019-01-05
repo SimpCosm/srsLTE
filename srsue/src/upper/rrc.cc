@@ -48,16 +48,12 @@ namespace srsue {
 *******************************************************************************/
 
 rrc::rrc()
-    :imsi("001010123456789")
 {
   initiated = false;
   running = false;
   go_idle = false;
   go_rlf  = false;
 
-  plmns.plmn_id.mcc = 61441;
-  plmns.plmn_id.mnc = 65281;
-  plmns.tac = 0x01;
 }
 
 rrc::~rrc()
@@ -106,6 +102,13 @@ void rrc::init(nas_interface_rrc *nas_,
   args.feature_group = 0xe6041000;
 
   ueIdentity_configured = false;
+
+  usim->get_imsi_vec(imsi, 15);
+
+  // TODO plmns setting(houmin)
+  plmns.plmn_id.mcc = 61441;
+  plmns.plmn_id.mnc = 65281;
+  plmns.tac = 0x01;
 
   // Register logging handler with liblte_rrc
   liblte_rrc_log_register_handler(this, liblte_rrc_handler);
@@ -213,7 +216,6 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
 void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   plmn_is_selected = true;
   selected_plmn_id = plmn_id;
-
   rrc_log->info("PLMN Selected %s\n", plmn_id_to_string(plmn_id).c_str());
 }
 
@@ -235,12 +237,11 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
 
   // Pretend that rrc connection already setup
   pthread_mutex_lock(&mutex);
-
   state = RRC_STATE_CONNECTED;
-  rrc_log->info("RRC connection already setup\n");
-  send_ul_info_transfer(cause, dedicatedInfoNAS);
-
+  rrc_pdu p = {SRSUE_UL_ATTACH, RB_ID_SRB0, cause, dedicatedInfoNAS};   // push nas info to queue and send it via rrc socket
+  pdu_queue.push(p);
   pthread_mutex_unlock(&mutex);
+  rrc_log->info("RRC connection already setup\n");
 
   return true;
 }
@@ -251,25 +252,6 @@ void rrc::set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {
   rrc_log->info("Set ue-Identity to 0x%x:0x%x\n", ueIdentity.mmec, ueIdentity.m_tmsi);
 }
 
-
-/*******************************************************************************
-*
-*
-*
-* Connection Control: Establishment, Reconfiguration, Reestablishment and Release
-*
-*
-*
-*******************************************************************************/
-
-void rrc::send_ul_info_transfer(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause, byte_buffer_t *nas_msg) {
-  rrc_log->debug("Preparing RX Info Transfer\n");
-
-  // not using rrc packet format anymore, just send it via socket.
-  rrc_pdu p = {SRSUE_UL_ATTACH, RB_ID_SRB0, cause, nas_msg};
-  pdu_queue.push(p);
-
-}
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
 void rrc::rrc_connection_release() {
@@ -414,14 +396,15 @@ void rrc::send_uplink() {
     rrc_pdu pdu = pdu_queue.wait_pop();
     switch (pdu.type) {
         case SRSUE_UL_ATTACH:
-            printf("send attach request\n");
+            rrc_log->info("send attach request\n");
             send_attach(pdu);
             break;
         case SRSUE_UL_NORMAL:
-            printf("send normal request\n");
+            rrc_log->info("send normal request\n");
             send_signaling(pdu);
             break;
         case SRSUE_UL_DATA:
+            rrc_log->info("send data to eNodeB\n");
             send_data(pdu);
             break;
         default:

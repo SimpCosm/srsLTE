@@ -139,7 +139,7 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
 
   found_plmn_t  plmns;
-  char    imsi[16];
+  uint8_t    imsi[16];
 
 private:
 
@@ -218,15 +218,7 @@ private:
 
   bool security_is_activated;
 
-  // Senders
-  void          send_ul_info_transfer(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause, byte_buffer_t *nas_msg);
-
   // Helpers
-  bool          con_reconfig(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
-  void          con_reconfig_failed();
-  bool          con_reconfig_ho(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
-  bool          ho_prepare();
-  void          ho_failed();
   void          rrc_connection_release();
   void          leave_connected();
 

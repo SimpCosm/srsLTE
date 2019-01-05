@@ -646,7 +646,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
       // Setup GW
       char *err_str = NULL;
-      if (gw->setup_if_addr(ip_addr, 0x01, err_str)) {
+      if (gw->setup_if_addr(ip_addr, gw->PDN_DEFAULT, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
     } else {
@@ -789,7 +789,7 @@ void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, byte_
 
       // Setup GW
       char *err_str = NULL;
-      if (gw->setup_if_addr(ip_ims_addr, 0x02, err_str)) {
+      if (gw->setup_if_addr(ip_ims_addr, gw->PDN_IMS, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
     } else {

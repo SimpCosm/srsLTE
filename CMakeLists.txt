@@ -87,26 +87,6 @@ set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 # Threads
 find_package(Threads REQUIRED)
 
-# FFT
-find_package(MKL)
-if(MKL_FOUND)
-  include_directories(${MKL_INCLUDE_DIRS})
-  link_directories(${MKL_LIBRARY_DIRS})
-  set(FFT_LIBRARIES "${MKL_STATIC_LIBRARIES}") # Static by default
-else(MKL_FOUND)
-  find_package(FFTW3F REQUIRED)
-  if(FFTW3F_FOUND)
-    include_directories(${FFTW3F_INCLUDE_DIRS})
-    link_directories(${FFTW3F_LIBRARY_DIRS})
-    if(BUILD_STATIC)
-      set(FFT_LIBRARIES "${FFTW3F_STATIC_LIBRARIES}")
-    else(BUILD_STATIC)
-      set(FFT_LIBRARIES "${FFTW3F_LIBRARIES}")
-    endif(BUILD_STATIC)
-    message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
-  endif(FFTW3F_FOUND)
-endif(MKL_FOUND)
-
 # Crypto
 find_package(Polarssl)
 if (POLARSSL_FOUND)

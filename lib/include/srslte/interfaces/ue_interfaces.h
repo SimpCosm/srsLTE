@@ -80,6 +80,11 @@ public:
 class usim_interface_rrc
 {
 public:
+  virtual std::string get_imsi_str() = 0;
+  virtual std::string get_imei_str() = 0;
+  virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
+  virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual bool get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
   virtual void generate_as_keys(uint8_t *k_asme,
                                 uint32_t count_ul,
                                 uint8_t *k_rrc_enc,
@@ -103,7 +108,14 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual srslte::error_t setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str) = 0;
+    typedef enum {
+        PDN_DEFAULT = 0,
+        PDN_INTERNET,
+        PDN_IMS,
+        PDN_SOS,
+        PDN_N_ITEMS,
+    } pdn_t;
+    virtual srslte::error_t setup_if_addr(uint32_t ip_addr, pdn_t type, char *err_str) = 0;
 };
 
 // GW interface for RRC
@@ -111,15 +123,10 @@ class gw_interface_rrc
 {
 public:
   virtual void add_mch_port(uint32_t lcid, uint32_t port) = 0;
-};
-
-// GW interface for PDCP
-class gw_interface_pdcp
-{
-public:
   virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
 };
+
 
 // NAS interface for RRC
 class nas_interface_rrc

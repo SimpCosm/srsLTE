@@ -40,10 +40,12 @@
 
 namespace srsue {
 
+static const char pdn_apn[4][10] = {"default", "internet", "ims", "sos"};
+
 gw::gw()
-  :if_up(false)
 {
-  current_ip_addr = 0;
+  memset(&current_ip_addr, 0, sizeof(current_ip_addr));
+  memset(&if_up, 0, sizeof(if_up));
   default_netmask = true;
 }
 
@@ -78,22 +80,25 @@ void gw::stop()
   if(run_enable)
   {
     run_enable = false;
-    if(if_up)
+    for (int i = 0; i < PDN_N_ITEMS; i++)   // TODO when we have more if_up, we should have more thread
     {
-      close(tun_fd);
+        if(if_up[i])
+        {
 
-      // Wait thread to exit gracefully otherwise might leave a mutex locked
-      int cnt=0;
-      while(running && cnt<100) {
-        usleep(10000);
-        cnt++;
-      }
-      if (running) {
-        thread_cancel();
-      }
-      wait_thread_finish();
+          close(tun_fd[i]);
+          // Wait thread to exit gracefully otherwise might leave a mutex locked
+          int cnt=0;
+          while(running && cnt<100) {
+            usleep(10000);
+            cnt++;
+          }
+          if (running) {
+            thread_cancel();
+          }
+          wait_thread_finish();
 
-      current_ip_addr = 0;
+          memset(&current_ip_addr, 0, sizeof(current_ip_addr));
+        }
     }
     // TODO: tear down TUN device?
   }
@@ -110,17 +115,25 @@ void gw::set_netmask(std::string netmask)
 
 
 /*******************************************************************************
-  PDCP interface
+  RRC interface
 *******************************************************************************/
+void gw::add_mch_port(uint32_t lcid, uint32_t port)
+{
+  if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
+    mbsfn_ports[lcid] = port;
+  }
+}
+
+
 void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
-  if(!if_up)
+  if(!if_up[PDN_IMS])
   {
     gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
   }else{
-    int n = write(tun_ims_gate, pdu->msg, pdu->N_bytes);
+    int n = write(tun_fd[PDN_IMS], pdu->msg, pdu->N_bytes);
     if(n > 0 && (pdu->N_bytes != (uint32_t)n))
     {
       gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
@@ -142,17 +155,16 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     struct in_addr dst_addr;
     memcpy(&dst_addr.s_addr, &pdu->msg[16],4);
 
-    if(!if_up)
+    if(!if_up[PDN_IMS])
     {
       gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
     }else{
-      int n = write(tun_fd, pdu->msg, pdu->N_bytes);
+      int n = write(tun_fd[PDN_IMS], pdu->msg, pdu->N_bytes);
       if(n > 0 && (pdu->N_bytes != (uint32_t)n))
       {
         gw_log->warning("DL TUN/TAP write failure\n");
       }
     }
-    /*
     // Strip IP/UDP header
     pdu->msg += 28;
     pdu->N_bytes -= 28;
@@ -164,7 +176,7 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
           gw_log->error("Failed to send MCH PDU to port %d\n", mbsfn_ports[lcid]);
         }
       }
-    }*/
+    }
   }
   pool->deallocate(pdu);
 }
@@ -172,7 +184,7 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-srslte::error_t gw::setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str)
+srslte::error_t gw::setup_if_addr(uint32_t ip_addr, pdn_t type, char *err_str)
 {
   int32 fd;
   std::string dev_name;
@@ -183,25 +195,10 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str
   memcpy(&addr, &net_addr, 4);
   std::cout << inet_ntoa(addr) << std::endl;
 
-  switch (type) {
-      case 0x01:
-          fd = tun_fd;
-          up = if_up;
-          dev_name = "tun_srsue";
-          break;
-      case 0x02:
-          fd = tun_ims_gate;
-          up = if_ims_up;
-          dev_name = "tun_ims_gate";
-          break;
-      default:
-          std::cout << "unknown if type\n";
-          break;
-  }
-  if (ip_addr != current_ip_addr) {
-    if(!up)
+  if (ip_addr != current_ip_addr[type]) {
+    if(!if_up[type])
     {
-      if(init_if(err_str, fd, up, dev_name))
+      if(init_if(err_str, type))
       {
         gw_log->error("init_if failed\n");
         return(srslte::ERROR_CANT_START);
@@ -216,7 +213,7 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str
     {
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket address: %s\n", err_str);
-      close(fd);
+      close(tun_fd[type]);
       return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
@@ -229,11 +226,11 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str
     {
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket netmask: %s\n", err_str);
-      close(fd);
+      close(tun_fd[type]);
       return(srslte::ERROR_CANT_START);
     }
 
-    current_ip_addr = ip_addr;
+    current_ip_addr[type] = ip_addr;
 
     // Setup a thread to receive packets from the TUN device
     start(GW_THREAD_PRIO);
@@ -242,17 +239,17 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, uint32_t type, char *err_str
   return(srslte::ERROR_NONE);
 }
 
-srslte::error_t gw::init_if(char *err_str, int32& fd, bool& up, std::string if_name)
+srslte::error_t gw::init_if(char *err_str, pdn_t type)
 {
-  if(up)
+  if(if_up[type])
   {
     return(srslte::ERROR_ALREADY_STARTED);
   }
 
   // Construct the TUN device
-  tun_ims_gate = open("/dev/net/tun", O_RDWR);
-  gw_log->info("TUN file descriptor = %d\n", tun_ims_gate);
-  if(0 > tun_ims_gate)
+  tun_fd[type] = open("/dev/net/tun", O_RDWR);
+  gw_log->info("TUN file descriptor = %d\n", tun_fd[type]);
+  if(0 > tun_fd[type])
   {
       err_str = strerror(errno);
       gw_log->debug("Failed to open TUN device: %s\n", err_str);
@@ -260,13 +257,13 @@ srslte::error_t gw::init_if(char *err_str, int32& fd, bool& up, std::string if_n
   }
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, if_name.c_str(), IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, pdn_apn[type], IFNAMSIZ-1);
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1] = 0;
-  if(0 > ioctl(tun_ims_gate, TUNSETIFF, &ifr))
+  if(0 > ioctl(tun_fd[type], TUNSETIFF, &ifr))
   {
       err_str = strerror(errno);
       gw_log->debug("Failed to set TUN device name: %s\n", err_str);
-      close(tun_ims_gate);
+      close(tun_fd[type]);
       return(srslte::ERROR_CANT_START);
   }
 
@@ -276,7 +273,7 @@ srslte::error_t gw::init_if(char *err_str, int32& fd, bool& up, std::string if_n
   {
       err_str = strerror(errno);
       gw_log->debug("Failed to bring up socket: %s\n", err_str);
-      close(tun_ims_gate);
+      close(tun_fd[type]);
       return(srslte::ERROR_CANT_START);
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
@@ -284,24 +281,13 @@ srslte::error_t gw::init_if(char *err_str, int32& fd, bool& up, std::string if_n
   {
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket flags: %s\n", err_str);
-      close(tun_ims_gate);
+      close(tun_fd[type]);
       return(srslte::ERROR_CANT_START);
   }
 
-  up = true;
+  if_up[type] = true;
 
   return(srslte::ERROR_NONE);
-}
-
-
-/*******************************************************************************
-  RRC interface
-*******************************************************************************/
-void gw::add_mch_port(uint32_t lcid, uint32_t port)
-{
-  if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
-    mbsfn_ports[lcid] = port;
-  }
 }
 
 
@@ -325,14 +311,13 @@ void gw::run_thread()
   while(run_enable)
   {
     if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
-      N_bytes = read(tun_ims_gate, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
-      std::cout << "read " << N_bytes << " from tun_ims_gate" << std::endl;
+      N_bytes = read(tun_fd[PDN_IMS], &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
       gw_log->error("GW pdu buffer full - gw receive thread exiting.\n");
       gw_log->console("GW pdu buffer full - gw receive thread exiting.\n");
       break;
     }
-    gw_log->debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_ims_gate, idx);
+    gw_log->debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd[PDN_IMS], idx);
     if(N_bytes > 0)
     {
       pdu->N_bytes = idx + N_bytes;
