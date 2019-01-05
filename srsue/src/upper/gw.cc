@@ -56,7 +56,6 @@ void gw::init(rrc_interface_gw *rrc_, nas_interface_gw *nas_, srslte::log *gw_lo
   cfg     = cfg_;
   run_enable = true;
 
-  gettimeofday(&metrics_time[1], NULL);
   dl_tput_bytes = 0;
   ul_tput_bytes = 0;
   // MBSFN
@@ -101,22 +100,6 @@ void gw::stop()
   if (mbsfn_sock_fd) {
     close(mbsfn_sock_fd);
   }
-}
-
-void gw::get_metrics(gw_metrics_t &m)
-{
-  gettimeofday(&metrics_time[2], NULL);
-  get_time_interval(metrics_time);
-  double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
-
-  m.dl_tput_mbps = (dl_tput_bytes*8/(double)1e6)/secs;
-  m.ul_tput_mbps = (ul_tput_bytes*8/(double)1e6)/secs;
-  gw_log->info("RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
-               m.dl_tput_mbps, m.ul_tput_mbps);
-
-  memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
-  dl_tput_bytes = 0;
-  ul_tput_bytes = 0;
 }
 
 void gw::set_netmask(std::string netmask)

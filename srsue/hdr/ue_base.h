@@ -43,28 +43,11 @@
 #include "srslte/common/logger.h"
 #include "srslte/common/log_filter.h"
 
-#include "ue_metrics_interface.h"
-
 namespace srsue {
 
 /*******************************************************************************
   UE Parameters
 *******************************************************************************/
-
-typedef struct {
-  uint32_t      dl_earfcn;
-  float         dl_freq;
-  float         ul_freq;
-  float         freq_offset;
-  float         rx_gain;
-  float         tx_gain;
-  uint32_t      nof_rx_ant;
-  std::string   device_name;
-  std::string   device_args;
-  std::string   time_adv_nsamples;
-  std::string   burst_preamble;
-  std::string   continuous_tx;
-}rf_args_t;
 
 typedef struct {
   bool          enable;
@@ -74,26 +57,11 @@ typedef struct {
 }pcap_args_t;
 
 typedef struct {
-  bool          enable;
-  std::string   phy_filename;
-  std::string   radio_filename;
-}trace_args_t;
-
-typedef struct {
-  std::string   phy_level;
-  std::string   phy_lib_level;
-  std::string   mac_level;
-  std::string   rlc_level;
-  std::string   pdcp_level;
   std::string   rrc_level;
   std::string   gw_level;
   std::string   nas_level;
   std::string   usim_level;
   std::string   all_level;
-  int           phy_hex_limit;
-  int           mac_hex_limit;
-  int           rlc_hex_limit;
-  int           pdcp_hex_limit;
   int           rrc_hex_limit;
   int           gw_hex_limit;
   int           nas_hex_limit;
@@ -109,18 +77,13 @@ typedef struct {
 
 typedef struct {
   std::string   ip_netmask;
-  float         metrics_period_secs;
   bool          pregenerate_signals;
   bool          print_buffer_state;
-  bool          metrics_csv_enable;
-  std::string   metrics_csv_filename;
   int           mbms_service;
 }expert_args_t;
 
 typedef struct {
-  rf_args_t     rf;
   pcap_args_t   pcap;
-  trace_args_t  trace;
   log_args_t    log;
   gui_args_t    gui;
   usim_args_t   usim;
@@ -143,7 +106,6 @@ static const char srsue_instance_type_text[SRSUE_INSTANCE_TYPE_NITEMS][10] = { "
 
 class ue_base
     :public ue_interface
-    ,public ue_metrics_interface
 {
 public:
   ue_base();
@@ -161,13 +123,8 @@ public:
 
   virtual void print_pool() = 0;
 
-  // UE metrics interface
-  virtual bool get_metrics(ue_metrics_t &m) = 0;
-
   virtual srsue::rrc* get_rrc() = 0;
 
-  srslte::log_filter rf_log;
-  rf_metrics_t     rf_metrics;
   srslte::LOG_LEVEL_ENUM level(std::string l);
 
   std::string get_build_mode();

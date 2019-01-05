@@ -39,7 +39,6 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
-#include "srslte/upper/rlc_interface.h"
 
 namespace srsue {
 
@@ -156,30 +155,6 @@ public:
   virtual bool attach_request() = 0;
 };
 
-// RRC interface for MAC
-class rrc_interface_mac_common
-{
-public:
-  virtual void ra_problem() = 0;
-};
-
-class rrc_interface_mac : public rrc_interface_mac_common
-{
-public:
-  virtual void ho_ra_completed(bool ra_successful) = 0;
-  virtual void release_pucch_srs() = 0;
-  virtual void run_tti(uint32_t tti) = 0;
-};
-
-// RRC interface for PHY
-class rrc_interface_phy
-{
-public:
-  virtual void in_sync() = 0;
-  virtual void out_of_sync() = 0;
-  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
-};
-
 // RRC interface for NAS
 class rrc_interface_nas
 {
@@ -204,53 +179,12 @@ public:
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
-// RRC interface for PDCP
-class rrc_interface_pdcp
-{
-public:
-  virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
-};
-
-// RRC interface for RLC
-class rrc_interface_rlc
-{
-public:
-  virtual void max_retx_attempted() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
-};
-
 // RRC interface for GW
 class rrc_interface_gw
 {
 public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
 //  virtual bool is_drb_enabled(uint32_t lcid) = 0;
-};
-
-// PDCP interface for RRC
-class pdcp_interface_rrc
-{
-public:
-  virtual void reestablish() = 0;
-  virtual void reset() = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
-  virtual void config_security(uint32_t lcid,
-                               uint8_t *k_enc_,
-                               uint8_t *k_int_,
-                               srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
-  virtual void config_security_all(uint8_t *k_enc_,
-                                   uint8_t *k_int_,
-                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
-  virtual void enable_integrity(uint32_t lcid) = 0;
-  virtual void enable_encryption(uint32_t lcid) = 0;
 };
 
 } // namespace srsue

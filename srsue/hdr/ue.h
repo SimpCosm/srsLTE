@@ -48,7 +48,6 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 
-#include "ue_metrics_interface.h"
 
 namespace srsue {
 
@@ -70,9 +69,6 @@ public:
 
   void print_pool();
 
-  // UE metrics interface
-  bool get_metrics(ue_metrics_t &m);
-
   srsue::rrc* get_rrc();
 private:
   virtual ~ue();
@@ -88,8 +84,6 @@ private:
   srslte::logger        *logger;
 
   // rf_log is on ue_base
-  srslte::log_filter  rlc_log;
-  srslte::log_filter  pdcp_log;
   srslte::log_filter  rrc_log;
   srslte::log_filter  nas_log;
   srslte::log_filter  gw_log;

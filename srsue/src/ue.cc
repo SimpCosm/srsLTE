@@ -60,10 +60,6 @@ bool ue::init(all_args_t *args_) {
     logger = &logger_file;
   }
 
-  rf_log.init("RF  ", logger);
-
-  rlc_log.init("RLC ", logger);
-  pdcp_log.init("PDCP", logger);
   rrc_log.init("RRC ", logger);
   nas_log.init("NAS ", logger);
   gw_log.init("GW  ", logger);
@@ -74,15 +70,11 @@ bool ue::init(all_args_t *args_) {
   byte_buffer_pool::get_instance()->set_log(&pool_log);
 
   // Init logs
-  rlc_log.set_level(level(args->log.rlc_level));
-  pdcp_log.set_level(level(args->log.pdcp_level));
   rrc_log.set_level(level(args->log.rrc_level));
   nas_log.set_level(level(args->log.nas_level));
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  rlc_log.set_hex_limit(args->log.rlc_hex_limit);
-  pdcp_log.set_hex_limit(args->log.pdcp_hex_limit);
   rrc_log.set_hex_limit(args->log.rrc_hex_limit);
   nas_log.set_hex_limit(args->log.nas_hex_limit);
   gw_log.set_hex_limit(args->log.gw_hex_limit);
@@ -115,14 +107,9 @@ bool ue::init(all_args_t *args_) {
           args->rrc.ue_gate_addr, args->rrc.ue_gate_port);
 
   // Get current band from provided EARFCN
-  // args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);  // 20190101
   args->rrc.nof_supported_bands = 1;
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
   rrc.set_args(&args->rrc);
-
-  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
-  std::vector<uint32_t> earfcn_list;
-  earfcn_list.push_back(args->rf.dl_earfcn);
 
   started = true;
   return true;
@@ -135,11 +122,6 @@ void ue::stop()
     usim->stop();
     nas.stop();
     rrc.stop();
-
-    // Caution here order of stop is very important to avoid locks
-
-
-    // Stop RLC and PDCP before GW to avoid locking on queue
     gw.stop();
 
     usleep(1e5);
@@ -165,22 +147,6 @@ bool ue::is_attached()
 
 void ue::print_pool() {
   byte_buffer_pool::get_instance()->print_all_buffers();
-}
-
-bool ue::get_metrics(ue_metrics_t &m)
-{
-  bzero(&m, sizeof(ue_metrics_t));
-  m.rf = rf_metrics;
-  bzero(&rf_metrics, sizeof(rf_metrics_t));
-  rf_metrics.rf_error = false; // Reset error flag
-
-  if(EMM_STATE_REGISTERED == nas.get_state()) {
-    if(RRC_STATE_CONNECTED == rrc.get_state()) {
-      gw.get_metrics(m.gw);
-      return true;
-    }
-  }
-  return false;
 }
 
 srsue::rrc* ue::get_rrc() {

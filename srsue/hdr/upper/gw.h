@@ -33,7 +33,6 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
-#include "gw_metrics.h"
 
 #include <linux/if.h>
 
@@ -49,7 +48,6 @@ public:
   void init(rrc_interface_gw *rrc_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
   void stop();
 
-  void get_metrics(gw_metrics_t &m);
   void set_netmask(std::string netmask);
 
   // PDCP interface
@@ -91,7 +89,6 @@ private:
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;
-  struct timeval      metrics_time[3];
 
   void                run_thread();
   srslte::error_t     init_if(char *err_str, int32& fd, bool& up, std::string if_name);

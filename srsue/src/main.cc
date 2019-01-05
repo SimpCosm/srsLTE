@@ -39,9 +39,6 @@
 #include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
-#include "srsue/hdr/metrics_stdout.h"
-#include "srsue/hdr/metrics_csv.h"
-#include "srslte/common/metrics_hub.h"
 #include "srslte/version.h"
 
 using namespace std;
@@ -65,21 +62,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
-    ("rf.dl_earfcn", bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
-    ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
-    ("rf.dl_freq",     bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
-    ("rf.ul_freq",     bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
-    ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
-    ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
-    ("rf.nof_rx_ant", bpo::value<uint32_t>(&args->rf.nof_rx_ant)->default_value(1), "Number of RX antennas")
-
-    ("rf.device_name", bpo::value<string>(&args->rf.device_name)->default_value("auto"), "Front-end device name")
-    ("rf.device_args", bpo::value<string>(&args->rf.device_args)->default_value("auto"), "Front-end device arguments")
-    ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
-     "Transmission time advance")
-    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
-    ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
-
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")
     ("rrc.ue_category",     bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
@@ -102,23 +84,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
 
 
-    ("trace.enable", bpo::value<bool>(&args->trace.enable)->default_value(false), "Enable PHY and radio timing traces")
-    ("trace.phy_filename", bpo::value<string>(&args->trace.phy_filename)->default_value("ue.phy_trace"),
-     "PHY timing traces filename")
-    ("trace.radio_filename", bpo::value<string>(&args->trace.radio_filename)->default_value("ue.radio_trace"),
-     "Radio timing traces filename")
-
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
-    ("log.phy_level", bpo::value<string>(&args->log.phy_level), "PHY log level")
-    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level), "PHY lib log level")
-    ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit), "PHY log hex dump limit")
-    ("log.mac_level", bpo::value<string>(&args->log.mac_level), "MAC log level")
-    ("log.mac_hex_limit", bpo::value<int>(&args->log.mac_hex_limit), "MAC log hex dump limit")
-    ("log.rlc_level", bpo::value<string>(&args->log.rlc_level), "RLC log level")
-    ("log.rlc_hex_limit", bpo::value<int>(&args->log.rlc_hex_limit), "RLC log hex dump limit")
-    ("log.pdcp_level", bpo::value<string>(&args->log.pdcp_level), "PDCP log level")
-    ("log.pdcp_hex_limit", bpo::value<int>(&args->log.pdcp_hex_limit), "PDCP log hex dump limit")
     ("log.rrc_level", bpo::value<string>(&args->log.rrc_level), "RRC log level")
     ("log.rrc_hex_limit", bpo::value<int>(&args->log.rrc_hex_limit), "RRC log hex dump limit")
     ("log.gw_level", bpo::value<string>(&args->log.gw_level), "GW log level")
@@ -153,18 +120,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      ("expert.mbms_service",
      bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
      "automatically starts an mbms service of the number given")
-
-    ("expert.metrics_period_secs",
-     bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
-     "Periodicity for metrics in seconds")
-
-    ("expert.metrics_csv_enable",
-     bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
-     "Write UE metrics to CSV file")
-
-    ("expert.metrics_csv_filename",
-     bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
-     "Metrics CSV filename")
 
     ("expert.pregenerate_signals",
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
@@ -244,21 +199,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
-    if (!vm.count("log.phy_level")) {
-      args->log.phy_level = args->log.all_level;
-    }
-    if (!vm.count("log.phy_lib_level")) {
-      args->log.phy_lib_level = args->log.all_level;
-    }
-    if (!vm.count("log.mac_level")) {
-      args->log.mac_level = args->log.all_level;
-    }
-    if (!vm.count("log.rlc_level")) {
-      args->log.rlc_level = args->log.all_level;
-    }
-    if (!vm.count("log.pdcp_level")) {
-      args->log.pdcp_level = args->log.all_level;
-    }
     if (!vm.count("log.rrc_level")) {
       args->log.rrc_level = args->log.all_level;
     }
@@ -276,18 +216,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
   // Apply all_hex_limit to any unset layers
   if (vm.count("log.all_hex_limit")) {
-    if (!vm.count("log.phy_hex_limit")) {
-      args->log.phy_hex_limit = args->log.all_hex_limit;
-    }
-    if (!vm.count("log.mac_hex_limit")) {
-      args->log.mac_hex_limit = args->log.all_hex_limit;
-    }
-    if (!vm.count("log.rlc_hex_limit")) {
-      args->log.rlc_hex_limit = args->log.all_hex_limit;
-    }
-    if (!vm.count("log.pdcp_hex_limit")) {
-      args->log.pdcp_hex_limit = args->log.all_hex_limit;
-    }
     if (!vm.count("log.rrc_hex_limit")) {
       args->log.rrc_hex_limit = args->log.all_hex_limit;
     }
@@ -305,8 +233,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 static int sigcnt = 0;
 static bool running = true;
-static bool do_metrics = false;
-metrics_stdout metrics_screen;
 uint32_t serv, port;
 
 void sig_int_handler(int signo) {
@@ -340,15 +266,6 @@ void *input_loop(void *m) {
       cout << "Closing stdin thread." << endl;
       break;
     } else {
-      if (0 == key.compare("t")) {
-        do_metrics = !do_metrics;
-        if (do_metrics) {
-          cout << "Enter t to stop trace." << endl;
-        } else {
-          cout << "Enter t to restart trace." << endl;
-        }
-        metrics_screen.toggle_print(do_metrics);
-      } else
       if (0 == key.compare("q")) {
         running = false;
       }
@@ -379,7 +296,6 @@ void *input_loop(void *m) {
 
 int main(int argc, char *argv[])
 {
-  srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   all_args_t args;
@@ -401,16 +317,6 @@ int main(int argc, char *argv[])
   }
   cout << "UE init done" << endl;
 
-  metricshub.init(ue, args.expert.metrics_period_secs);
-  metricshub.add_listener(&metrics_screen);
-  metrics_screen.set_ue_handle(ue);
-
-  metrics_csv metrics_file(args.expert.metrics_csv_filename);
-  if (args.expert.metrics_csv_enable) {
-    metricshub.add_listener(&metrics_file);
-    metrics_file.set_ue_handle(ue);
-  }
-
   pthread_t input;
   pthread_t send_tid;
   pthread_t recv_tid;
@@ -420,16 +326,6 @@ int main(int argc, char *argv[])
   printf("Attaching UE...\n");
   while (!ue->attach() && running) {
     sleep(1);
-  }
-  if (running) {
-    if (args.expert.pregenerate_signals) {
-      printf("Pre-generating signals...\n");
-      // ue->pregenerate_signals(true);
-      printf("Done pregenerating signals.\n");
-    }
-    if (args.gui.enable) {
-      // ue->start_plot();
-    }
   }
   int cnt=0;
   while (running) {
@@ -443,7 +339,6 @@ int main(int argc, char *argv[])
     sleep(1);
   }
   pthread_cancel(input);
-  metricshub.stop();
   ue->stop();
   ue->cleanup();
   cout << "---  exiting  ---" << endl;
