@@ -42,7 +42,6 @@
 
 #include "srslte/common/logger.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/upper/rlc.h"
 
 #include "ue_metrics_interface.h"
 
