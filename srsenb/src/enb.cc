@@ -77,13 +77,6 @@ bool enb::init(all_args_t *args_)
     logger = &logger_file;
   }
 
-  // Create array of pointers to phy_logs
-  /*for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
-    srslte::log_filter *mylog = new srslte::log_filter;
-    char tmp[16];
-    sprintf(tmp, "PHY%d",i);
-    mylog->init(tmp, logger, true);
-  }*/
   rrc_log.init("RRC ", logger);
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
@@ -101,20 +94,12 @@ bool enb::init(all_args_t *args_)
   gtpu_log.set_hex_limit(args->log.gtpu_hex_limit);
   s1ap_log.set_hex_limit(args->log.s1ap_hex_limit);
 
-  // Init layers
- // change phy to udp or tcp
- // from here
- //
- //
-
   srslte_cell_t cell_cfg;
 
   if (parse_cell_cfg(args, &cell_cfg)) {
     fprintf(stderr, "Error parsing Cell configuration\n");
     return false;
   }
-
- // end here
 
   // Init all layers
   rrc.init(&s1ap, &gtpu, &gtpu, &rrc_log, args->enb.rrc.rrc_bind_addr, args->enb.rrc.rrc_bind_port);
