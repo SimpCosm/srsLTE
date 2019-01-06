@@ -494,14 +494,11 @@ void rrc::handle_signaling(srslte::byte_buffer_t *sdu) {
 }
 
 void rrc::handle_data(srslte::byte_buffer_t *sdu) {
-    printf("send data to ue gate\n");
-    sdu->msg += 15 + 2 + 28;
-    sdu->N_bytes -= 15 + 2 + 28;
-    ssize_t send_len = sendto(sockfd, sdu->msg,sdu->N_bytes, 0, (struct sockaddr*)&ue_gate_addr, sizeof(struct sockaddr));
-    if ((uint32_t)send_len != sdu->N_bytes) {
-        rrc_log->warning("Send Data, short of bytes, expected to send:%d, sent:%d\n", sdu->N_bytes, (int)send_len);
-    }
-    printf("send_len: %d\n", send_len);
+    sdu->msg += 15 + 2;
+    sdu->N_bytes -= 15 + 2;
+    int lcid = 4;
+    printf("send data to ue gate %d\n", sdu->N_bytes);
+    gw->write_pdu(lcid, sdu);
     return ;
 }
 
