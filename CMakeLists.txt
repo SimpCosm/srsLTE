@@ -63,8 +63,8 @@ configure_file(
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
-option(ENABLE_SRSENB   "Build srsENB application"                 OFF)
-option(ENABLE_SRSEPC   "Build srsEPC application"                 OFF)
+option(ENABLE_SRSENB   "Build srsENB application"                 ON)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
@@ -329,7 +329,7 @@ endif(ENABLE_SRSUE)
 
 if(ENABLE_SRSENB)
 message(STATUS "Building with srsENB")
-#add_subdirectory(srsenb)
+add_subdirectory(srsenb)
 else(ENABLE_SRSENB)
 message(STATUS "srsENB build disabled")
 endif(ENABLE_SRSENB)

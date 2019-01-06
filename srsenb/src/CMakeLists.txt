@@ -1,6 +1,4 @@
 
-add_subdirectory(phy)
-add_subdirectory(mac)
 add_subdirectory(upper)
 
 
@@ -15,14 +13,11 @@ if (RPATH)
 endif (RPATH)
 
 
-add_executable(srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc metrics_stdout.cc)
+add_executable(srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc)
 target_link_libraries(srsenb  srsenb_upper
-                              srsenb_mac
-                              srsenb_phy
                               srslte_common
                               srslte_phy
                               srslte_upper
-                              srslte_radio
                               ${CMAKE_THREAD_LIBS_INIT} 
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}

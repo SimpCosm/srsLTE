@@ -152,9 +152,12 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_port        = htons(GTPU_PORT);
 
   gtpu_write_header(&header, pdu, gtpu_log);
-  if (sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
+  ssize_t len = 0;
+  len = sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  if(len < 0) {
     perror("sendto");
   }
+  gtpu_log->console("Send to SPGW len:%d\n", (uint32_t)len);
 
   pool->deallocate(pdu);
 }
@@ -231,6 +234,7 @@ void gtpu::run_thread()
     int n = 0;
     do{
       n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
+      gtpu_log->console("GTPU: Receive len:%d\n", n);
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
@@ -300,7 +304,7 @@ bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
   this->gtpu_log = gtpu_log;
 
   struct sockaddr_in bindaddr;
-  
+
   // Set up sink socket
   m1u_sd = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
@@ -374,7 +378,7 @@ void gtpu::mch_thread::run_thread()
     } while (n == -1 && errno == EAGAIN);
 
     pdu->N_bytes = (uint32_t) n;
-    
+
     gtpu_header_t header;
     gtpu_read_header(pdu, &header, gtpu_log);
 
@@ -404,7 +408,7 @@ void gtpu::mch_thread::stop()
       thread_cancel();
     }
     wait_thread_finish();
-  } 
+  }
 }
 
 } // namespace srsenb

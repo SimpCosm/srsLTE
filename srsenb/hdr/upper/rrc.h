@@ -39,118 +39,51 @@
 #include "common_enb.h"
 #include "rrc_metrics.h"
 
+#define SRSENB_RRC_ATTACH 0x01
+#define SRSENB_RRC_NORMAL 0x02
+#define SRSENB_RRC_DATA 0x03
+#define SRSENB_RRC_PAGING 0x04
+#define SRSENB_RRC_RELEASE 0x05
+
+#define SRSENB_DL_PAGING 0xFFFF0001
+#define SRSENB_DL_NORMAL 0xFFFF0002
+#define SRSENB_DL_DATA 0xFFFF0003
+#define SRSENB_DL_RELEASE_USER 0xFFFF0004
+#define SRSENB_DL_RELEASE_ERAB 0xFFFF0005
+
+#define RRC_RECEIVE_LEN sizeof(rrc_receive_head)
+#define RRC_SEND_LEN sizeof(rrc_send_head)
+
 namespace srsenb {
 
 typedef struct {
-  uint32_t                      period;   
-  LIBLTE_RRC_DSR_TRANS_MAX_ENUM dsr_max; 
-  uint32_t                      nof_prb; 
-  uint32_t                      sf_mapping[80]; 
-  uint32_t                      nof_subframes; 
-} rrc_cfg_sr_t; 
-  
-typedef enum {
-  RRC_CFG_CQI_MODE_PERIODIC = 0,
-  RRC_CFG_CQI_MODE_APERIODIC,
-  RRC_CFG_CQI_MODE_N_ITEMS
-} rrc_cfg_cqi_mode_t;
+  std::string rrc_bind_addr;
+  uint32_t rrc_bind_port;
+} rrc_args_t;
 
-static const char rrc_cfg_cqi_mode_text[RRC_CFG_CQI_MODE_N_ITEMS][20] = {"periodic", "aperiodic"};
 
-typedef struct {
-  uint32_t           sf_mapping[80]; 
-  uint32_t           nof_subframes; 
-  uint32_t           nof_prb; 
-  uint32_t           period; 
-  bool               simultaneousAckCQI;
-  rrc_cfg_cqi_mode_t mode; 
-} rrc_cfg_cqi_t; 
-
-typedef struct {
-  bool configured; 
-  LIBLTE_RRC_UL_SPECIFIC_PARAMETERS_STRUCT lc_cfg; 
-  LIBLTE_RRC_PDCP_CONFIG_STRUCT            pdcp_cfg; 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT             rlc_cfg; 
-} rrc_cfg_qci_t;
-
-#define MAX_NOF_QCI 10
-  
-typedef struct {
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT    sibs[LIBLTE_RRC_MAX_SIB];  
-  LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
-  
-  LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
-  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
-  LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM         pdsch_cfg;
-  rrc_cfg_sr_t                             sr_cfg; 
-  rrc_cfg_cqi_t                            cqi_cfg; 
-  rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 
-  srslte_cell_t cell; 
-  bool enable_mbsfn;
-  uint32_t inactivity_timeout_ms; 
-}rrc_cfg_t; 
-
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "WAIT FOR CON SETUP COMPLETE",
-                                                            "WAIT FOR SECURITY MODE COMPLETE",
-                                                            "WAIT FOR UE CAPABILITIY INFORMATION",
-                                                            "WAIT FOR CON RECONF COMPLETE",
-                                                            "RRC CONNECTED"
-                                                            "RELEASE REQUEST"};
-
-class rrc : public rrc_interface_pdcp, 
-            public rrc_interface_mac, 
-            public rrc_interface_rlc,
-            public rrc_interface_s1ap,
-            public thread
+class rrc : public rrc_interface_s1ap,
+            public pdcp_interface_gtpu
 {
 public:
 
-  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0) {
-    users.clear();
-    pending_paging.clear();
-
+  rrc(){
     pool = NULL;
-    phy = NULL;
-    mac = NULL;
-    rlc = NULL;
-    pdcp = NULL;
     gtpu = NULL;
     s1ap = NULL;
-    rrc_log = NULL;
-
-    bzero(&sr_sched, sizeof(sr_sched));
-    bzero(&cqi_sched, sizeof(cqi_sched));
-    bzero(&cfg, sizeof(cfg));
-    bzero(&sib2, sizeof(sib2));
-    bzero(&paging_mutex, sizeof(paging_mutex));
-
+    gtpu_pdcp = NULL;
+    log_h = NULL;
   }
-  
-  void init(rrc_cfg_t *cfg,
-            phy_interface_rrc *phy, 
-            mac_interface_rrc *mac, 
-            rlc_interface_rrc *rlc, 
-            pdcp_interface_rrc *pdcp,
-            s1ap_interface_rrc *s1ap,
+
+  void init(s1ap_interface_rrc *s1ap,
             gtpu_interface_rrc *gtpu,
-            srslte::log *log_rrc);
-  
-  void stop(); 
-  void get_metrics(rrc_metrics_t &m);
-  
-  // rrc_interface_mac
-  void rl_failure(uint16_t rnti);  
-  void add_user(uint16_t rnti); 
-  void upd_user(uint16_t new_rnti, uint16_t old_rnti);
-  void set_activity_user(uint16_t rnti);
-  bool is_paging_opportunity(uint32_t tti, uint32_t *payload_len); 
-  
-  // rrc_interface_rlc
-  void read_pdu_bcch_dlsch(uint32_t sib_idx, uint8_t *payload);
-  void read_pdu_pcch(uint8_t *payload, uint32_t buffer_size); 
-  void max_retx_attempted(uint16_t rnti);
-  
+            gtpu_interface_pdcp *gtpu_pdcp,
+            srslte::log *log_rrc,
+            std::string bind_addr,
+            uint32_t bind_port);
+
+  void stop();
+
   // rrc_interface_s1ap
   void write_dl_info(uint16_t rnti, srslte::byte_buffer_t *sdu);
   void release_complete(uint16_t rnti);
@@ -158,224 +91,71 @@ public:
   bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
   bool release_erabs(uint32_t rnti);
   void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID);
-  
-  // rrc_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
-  
-  void parse_sibs(); 
-  uint32_t get_nof_users();
-
-  // Notifier for user connect 
-  class connect_notifier {
-  public:
-    virtual void user_connected(uint16_t rnti) = 0; 
-  }; 
-  void set_connect_notifer(connect_notifier *cnotifier); 
-  
-  class activity_monitor : public thread
-  {
-  public:
-    activity_monitor(rrc* parent_); 
-    void stop(); 
-  private:
-    rrc* parent;
-    bool running;
-    void run_thread(); 
-  };
-  
-  class ue
-  {
-  public: 
-    ue(); 
-    bool is_connected();
-    bool is_idle(); 
-    bool is_timeout();
-    void set_activity();
-
-    uint32_t rl_failure();
-
-    rrc_state_t get_state();
-    
-    void send_connection_setup(bool is_setup = true);
-    void send_connection_reest(); 
-    void send_connection_release();
-    void send_connection_reest_rej(); 
-    void send_connection_reconf(srslte::byte_buffer_t *sdu);
-    void send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-    void send_connection_reconf_upd(srslte::byte_buffer_t *pdu); 
-    void send_security_mode_command();
-    void send_ue_cap_enquiry();
-    void parse_ul_dcch(uint32_t lcid, srslte::byte_buffer_t* pdu);
-
-    void handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg);
-    void handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg); 
-    void handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
-    void handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
-    void handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg);
-    void handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg);
-    void handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg);
-    
-    void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates);
-    void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);
-    void set_security_key(uint8_t* key, uint32_t length);
-
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e);
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-    void setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT *qos,
-                    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
-                    LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu);
-    bool release_erabs();
-
-    void notify_s1ap_ue_ctxt_setup_complete();
-    void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-
-    int sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr); 
-    void sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr); 
-    int sr_free();
-
-    int cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch); 
-    void cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch); 
-    int cqi_free(); 
-    
-    void send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg);
-    void send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, srslte::byte_buffer_t *pdu = NULL);
-    
-    uint16_t rnti; 
-    rrc *parent; 
-    
-    bool connect_notified; 
-    
-  private:
-    srslte::byte_buffer_pool  *pool;
-
-    struct timeval t_last_activity; 
-
-    LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establishment_cause;
-
-    // S-TMSI for this UE
-    bool      has_tmsi;
-    uint32_t  m_tmsi;
-    uint8_t   mmec;
-
-    uint32_t    rlf_cnt;
-    uint8_t     transaction_id;
-    rrc_state_t state;
-    
-    std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT>  srbs;
-    std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT>  drbs;
-    
-    uint8_t               k_enb[32];      // Provided by MME
-    uint8_t               k_rrc_enc[32];
-    uint8_t               k_rrc_int[32];
-    uint8_t               k_up_enc[32];
-    uint8_t               k_up_int[32];   // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
-
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
-
-    LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT  bitrates;
-    LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT     security_capabilities;
-    LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT         eutra_capabilities;
-
-    typedef struct {
-      uint8_t                                     id;
-      LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT  qos_params;
-      LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT    address;
-      uint32_t                                    teid_out;
-      uint32_t                                    teid_in;
-    }erab_t;
-    std::map<uint8_t, erab_t> erabs;
-    int sr_sched_sf_idx;
-    int sr_sched_prb_idx;
-    bool sr_allocated;
-    uint32_t sr_N_pucch;
-    uint32_t sr_I;
-    uint32_t cqi_pucch; 
-    uint32_t cqi_idx; 
-    bool cqi_allocated; 
-    int cqi_sched_sf_idx; 
-    int cqi_sched_prb_idx;
-    int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
-  }; 
-  
-  
-private: 
-      
-  std::map<uint16_t,ue> users;
-  
-  std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT > pending_paging; 
-
-  activity_monitor act_monitor; 
-  
-  LIBLTE_BYTE_MSG_STRUCT sib_buffer[LIBLTE_RRC_MAX_SIB];
-
-  // user connect notifier 
-  connect_notifier *cnotifier; 
-
-  void process_release_complete(uint16_t rnti);
-  void process_rl_failure(uint16_t rnti);
-  void rem_user(uint16_t rnti); 
-  uint32_t generate_sibs();
-  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
-
-  void config_mac();
-  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
-  void parse_ul_ccch(uint16_t rnti, srslte::byte_buffer_t *pdu);
-  void configure_security(uint16_t rnti,
-                          uint32_t lcid,
-                          uint8_t *k_rrc_enc,
-                          uint8_t *k_rrc_int,
-                          uint8_t *k_up_enc,
-                          uint8_t *k_up_int,
-                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  // pdcp_interface_gtpu
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
 
   srslte::byte_buffer_pool  *pool;
-  srslte::bit_buffer_t  bit_buf;
-  srslte::bit_buffer_t  bit_buf_paging;
-  srslte::byte_buffer_t erab_info;
-    
-  phy_interface_rrc    *phy;
-  mac_interface_rrc    *mac;
-  rlc_interface_rrc    *rlc;
-  pdcp_interface_rrc   *pdcp;
   gtpu_interface_rrc   *gtpu;
   s1ap_interface_rrc   *s1ap;
-  srslte::log          *rrc_log;
+  gtpu_interface_pdcp  *gtpu_pdcp;
+  srslte::log          *log_h;
 
-  typedef struct{
+  typedef struct ueid_t{
+    uint8_t value[15];
+    bool operator < (const ueid_t &ue) const {
+        int i;
+        for(i = 0;i < 14 && ue.value[i] == value[i];i ++);
+        return value[i] < ue.value[i];
+    }
+    uint8_t& operator [] (int i) {
+        return value[i];
+    }
+  }ueid;
+
+
+  typedef struct rrc_receive_head_t {
+    uint8_t type;
+    uint8_t ip[4];
+    uint8_t port[2];
+    struct ueid_t id;
+    uint16_t lcid;
+    LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause;
+  } rrc_receive_head;
+
+  typedef struct rrc_send_head_t {
+    uint8_t type;
+    struct ueid_t id;
+    uint16_t lcid;
+  } rrc_send_head;
+
+  typedef struct {
     uint16_t                rnti;
     uint32_t                lcid;
     srslte::byte_buffer_t*  pdu;
   }rrc_pdu;
 
-  const static uint32_t LCID_EXIT     = 0xffff0000;
-  const static uint32_t LCID_REM_USER = 0xffff0001;
-  const static uint32_t LCID_REL_USER = 0xffff0002;
-  const static uint32_t LCID_RLF_USER = 0xffff0003;
-  const static uint32_t LCID_ACT_USER = 0xffff0004;
-  
-  bool                  running;
-  static const int      RRC_THREAD_PRIO = 65;
-  srslte::block_queue<rrc_pdu> rx_pdu_queue;
+  srslte::block_queue<rrc_pdu> pdu_queue;
+  std::map<uint16_t, sockaddr_in> addr_map;
+  std::map<uint16_t, ueid> rnti_map;
+  std::map<ueid, uint16_t> ueid_map;
+  std::map<uint16_t, uint8_t> page_map;
 
-  typedef struct {
-    uint32_t nof_users[100][80]; 
-  } sr_sched_t;
-    
-  sr_sched_t sr_sched; 
-  sr_sched_t cqi_sched; 
-  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
-  bool enable_mbms;
-  rrc_cfg_t cfg; 
-  uint32_t nof_si_messages;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
+  int sock_fd;
+  int send_fd;
 
-  void run_thread();
-  void rem_user_thread(uint16_t rnti);
   pthread_mutex_t user_mutex;
-  
-  pthread_mutex_t paging_mutex; 
+  pthread_mutex_t paging_mutex;
+
+  void handle_normal(rrc_receive_head head, srslte::byte_buffer_t *sdu);
+  void handle_attach(rrc_receive_head head, srslte::byte_buffer_t *sdu);
+  void handle_data(rrc_receive_head head, srslte::byte_buffer_t *sdu);
+
+  bool send_normal(rrc_pdu pdu);
+  bool send_paging(rrc_pdu pdu);
+  void append_head(rrc_pdu pdu);
+
+  void send_downlink();
+  void receive_uplink();
 };
 
 } // namespace srsenb
