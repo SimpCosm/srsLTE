@@ -46,8 +46,7 @@
 #define SRSUE_UL_NORMAL     0x02
 #define SRSUE_UL_DATA       0x03
 
-#define SRSUE_DL_PAGING     0x01
-#define SRSUE_DL_NORMAL  0x02
+#define SRSUE_DL_NORMAL     0x02
 #define SRSUE_DL_DATA       0x03
 
 typedef struct {
@@ -145,7 +144,6 @@ private:
 
   typedef struct {
     enum {
-      PCCH,
       STOP
     } command;
     byte_buffer_t *pdu;

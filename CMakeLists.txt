@@ -67,10 +67,6 @@ option(ENABLE_SRSENB   "Build srsENB application"                 OFF)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
-option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
-option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
-option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
-
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 option(ENABLE_ASAN     "Enable gcc address sanitizer"             OFF)
@@ -111,16 +107,6 @@ else(POLARSSL_FOUND)
     message(FATAL_ERROR "Either PolarSSL or mbedTLS are required to build srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
-
-# Hard-SIM support
-find_package(PCSCLite)
-if (PCSCLITE_FOUND)
-  message(STATUS "Building with PCSC support.")
-  add_definitions(-DHAVE_PCSC)
-  set(HAVE_PCSC TRUE)
-  include_directories(${PCSCLITE_INCLUDE_DIR})
-  #link_directories(${PCSCLITE_LIBRARIES})
-endif (PCSCLITE_FOUND)
 
 # Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)

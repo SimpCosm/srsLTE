@@ -33,9 +33,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
-#include <srslte/asn1/liblte_rrc.h>
 #include "srsue/hdr/upper/rrc.h"
-#include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -58,19 +56,6 @@ rrc::rrc()
 
 rrc::~rrc()
 {
-}
-
-static void liblte_rrc_handler(void *ctx, char *str) {
-  rrc *r = (rrc *) ctx;
-  r->liblte_rrc_log(str);
-}
-
-void rrc::liblte_rrc_log(char *str) {
-  if (rrc_log) {
-    rrc_log->warning("[ASN]: %s\n", str);
-  } else {
-    printf("[ASN]: %s\n", str);
-  }
 }
 
 void rrc::init(nas_interface_rrc *nas_,
@@ -109,9 +94,6 @@ void rrc::init(nas_interface_rrc *nas_,
   plmns.plmn_id.mcc = 61441;
   plmns.plmn_id.mnc = 65281;
   plmns.tac = 0x01;
-
-  // Register logging handler with liblte_rrc
-  liblte_rrc_log_register_handler(this, liblte_rrc_handler);
 
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sockfd < 0) {
@@ -174,9 +156,6 @@ void rrc::run_thread() {
     switch(msg.command) {
       case cmd_msg_t::STOP:
         return;
-      case cmd_msg_t::PCCH:
-        process_pcch(msg.pdu);
-        break;
     }
   }
 }
@@ -273,76 +252,6 @@ void rrc::leave_connected()
 *
 *
 *
-* Reception of Paging messages
-*
-*
-*
-*******************************************************************************/
-void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
-  cmd_msg_t msg;
-  msg.pdu = pdu;
-  msg.command = cmd_msg_t::PCCH;
-  cmd_q.push(msg);
-}
-
-void rrc::process_pcch(byte_buffer_t *pdu) {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
-    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
-    rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
-
-    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
-    ZERO_OBJECT(pcch_msg);
-    srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
-    bit_buf.N_bits = pdu->N_bytes * 8;
-    pool->deallocate(pdu);
-    liblte_rrc_unpack_pcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &pcch_msg);
-
-    if (pcch_msg.paging_record_list_size > LIBLTE_RRC_MAX_PAGE_REC) {
-      pcch_msg.paging_record_list_size = LIBLTE_RRC_MAX_PAGE_REC;
-    }
-
-    if (!ueIdentity_configured) {
-      rrc_log->warning("Received paging message but no ue-Identity is configured\n");
-      return;
-    }
-    LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi_paged;
-    for (uint32_t i = 0; i < pcch_msg.paging_record_list_size; i++) {
-      s_tmsi_paged = &pcch_msg.paging_record_list[i].ue_identity.s_tmsi;
-      rrc_log->info("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
-                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
-                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
-      if (ueIdentity.mmec == s_tmsi_paged->mmec && ueIdentity.m_tmsi == s_tmsi_paged->m_tmsi) {
-        if (RRC_STATE_IDLE == state) {
-          rrc_log->info("S-TMSI match in paging message\n");
-          rrc_log->console("S-TMSI match in paging message\n");
-          nas->paging(s_tmsi_paged);
-        } else {
-          rrc_log->warning("Received paging while in CONNECT\n");
-        }
-      } else {
-        rrc_log->info("Received paging for unknown identity\n");
-      }
-    }
-  }
-}
-
-
-void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
-{
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
-    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "MCH message received %d bytes on lcid:%d\n", pdu->N_bytes, lcid);
-    rrc_log->info("MCH message Stack latency: %ld us\n", pdu->get_latency_us());
-    //TODO: handle MCCH notifications and update MCCH
-
-  }
-
-    pool->deallocate(pdu);
-}
-
-/*******************************************************************************
-*
-*
-*
 * Packet processing
 *
 *
@@ -427,8 +336,6 @@ void rrc::recv_downlink() {
         case SRSUE_DL_DATA:
             handle_data(sdu);
             break;
-        case SRSUE_DL_PAGING:
-            handle_paging(sdu);
         default:
             rrc_log->warning("Unknown PDU Type: 0x%x\n", sdu->msg[0]);
             break;
@@ -478,7 +385,6 @@ void rrc::send_data(rrc_pdu pdu) {
     if ((uint32_t)send_len != pdu.pdu->N_bytes) {
         rrc_log->warning("Send Data, short of bytes, expected to send:%d, sent:%d\n", pdu.pdu->N_bytes, (int)send_len);
     }
-    printf("send_len: %d\n", send_len);
     return ;
 }
 
@@ -497,20 +403,8 @@ void rrc::handle_data(srslte::byte_buffer_t *sdu) {
     sdu->msg += 15 + 2;
     sdu->N_bytes -= 15 + 2;
     int lcid = 4;
-    printf("send data to ue gate %d\n", sdu->N_bytes);
     gw->write_pdu(lcid, sdu);
     return ;
-}
-
-void rrc::handle_paging(srslte::byte_buffer_t *sdu) {
-    uint8_t recv_imsi[15];
-    memcpy(recv_imsi, sdu->msg, 15);
-    sdu->msg += 15;
-    uint16_t recv_lcid;
-    memcpy(&recv_lcid, sdu->msg, 2);
-    sdu->msg -= 2;
-    sdu->N_bytes -= 15 + 2;
-    write_pdu_pcch(sdu);
 }
 
 } // namespace srsue

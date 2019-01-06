@@ -26,9 +26,6 @@
 
 #include <srsue/hdr/upper/usim_base.h>
 #include <srsue/hdr/upper/usim.h>
-#ifdef HAVE_PCSC
-#include <srsue/hdr/upper/pcsc_usim.h>
-#endif
 
 namespace srsue{
 
@@ -38,11 +35,6 @@ usim_base* usim_base::get_instance(usim_args_t *args, srslte::log *usim_log_)
   if (args->mode == "soft") {
     instance = new usim();
   }
-#if HAVE_PCSC
-  else if (args->mode == "pcsc") {
-    instance = new pcsc_usim();
-  }
-#endif
   else {
     // default to soft USIM
     instance = new usim();
