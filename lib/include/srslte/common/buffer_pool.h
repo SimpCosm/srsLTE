@@ -48,14 +48,14 @@ namespace srslte {
  *
  * Preallocates a large number of buffer_t and provides allocate and
  * deallocate functions. Provides quick object creation and deletion as well
- * as object reuse. 
+ * as object reuse.
  * Singleton class of byte_buffer_t (but other pools of different type can be created)
  *****************************************************************************/
 
 template <class buffer_t>
 class buffer_pool{
 public:
-  
+
   // non-static methods
   buffer_pool(int capacity_ = -1)
   {
@@ -68,11 +68,11 @@ public:
       buffer_t *b = new buffer_t;
       available.push(b);
     }
-    capacity = nof_buffers; 
+    capacity = nof_buffers;
   }
 
-  ~buffer_pool() { 
-    // this destructor assumes all buffers have been properly deallocated 
+  ~buffer_pool() {
+    // this destructor assumes all buffers have been properly deallocated
     while(available.size()) {
       delete available.top();
       available.pop();
@@ -82,7 +82,7 @@ public:
       delete used[i];
     }
   }
-  
+
   void print_all_buffers()
   {
     printf("%d buffers in queue\n", (int) used.size());
@@ -116,7 +116,7 @@ public:
       b = available.top();
       used.push_back(b);
       available.pop();
-      
+
       if (is_almost_empty()) {
         printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
       }
@@ -126,10 +126,10 @@ public:
       b->debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN-1] = 0;
     }
 #endif
-      
+
     } else {
       printf("Error - buffer pool is empty\n");
-      
+
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       print_all_buffers();
 #endif
@@ -138,43 +138,43 @@ public:
     pthread_mutex_unlock(&mutex);
     return b;
   }
-  
+
   bool deallocate(buffer_t *b)
   {
-    bool ret = false; 
+    bool ret = false;
     pthread_mutex_lock(&mutex);
     typename std::vector<buffer_t*>::iterator elem = std::find(used.begin(), used.end(), b);
     if (elem != used.end()) {
-      used.erase(elem); 
+      used.erase(elem);
       available.push(b);
-      ret = true; 
+      ret = true;
     }
     pthread_mutex_unlock(&mutex);
-    return ret; 
+    return ret;
   }
 
-  
-private:  
+
+private:
   static const int       POOL_SIZE = 2048;
   std::stack<buffer_t*>  available;
-  std::vector<buffer_t*> used; 
-  pthread_mutex_t        mutex;  
+  std::vector<buffer_t*> used;
+  pthread_mutex_t        mutex;
   uint32_t capacity;
 };
 
 
 class byte_buffer_pool {
-public: 
+public:
   // Singleton static methods
-  static byte_buffer_pool   *instance;  
+  static byte_buffer_pool   *instance;
   static byte_buffer_pool*   get_instance(int capacity = -1);
-  static void                cleanup(void); 
+  static void                cleanup(void);
   byte_buffer_pool(int capacity = -1) {
     log = NULL;
     pool = new buffer_pool<byte_buffer_t>(capacity);
   }
   ~byte_buffer_pool() {
-    delete pool; 
+    delete pool;
   }
   byte_buffer_t* allocate(const char *debug_name = NULL) {
     return pool->allocate(debug_name);
@@ -201,7 +201,7 @@ public:
   }
 private:
   srslte::log *log;
-  buffer_pool<byte_buffer_t> *pool; 
+  buffer_pool<byte_buffer_t> *pool;
 };
 
 

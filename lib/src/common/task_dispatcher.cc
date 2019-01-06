@@ -29,7 +29,7 @@
 #include <queue>
 
 namespace srslte {
-  
+
 task_dispatcher::task_dispatcher(uint32_t max_pending_tasks)
 {
   pthread_cond_init(&cvar, NULL);
@@ -38,7 +38,7 @@ task_dispatcher::task_dispatcher(uint32_t max_pending_tasks)
 
 task_dispatcher::~task_dispatcher()
 {
-  running = false; 
+  running = false;
   pthread_cond_signal(&cvar);
   wait_thread_finish();
   pthread_cond_destroy(&cvar);
@@ -55,13 +55,13 @@ void task_dispatcher::push_task(uint32_t task_code)
 
 void task_dispatcher::run_thread()
 {
-  running = true; 
+  running = true;
   while(running) {
     uint32_t task = 0;
-    pthread_mutex_lock(&mutex);    
+    pthread_mutex_lock(&mutex);
     while(pending_tasks.empty()) {
       pthread_cond_wait(&cvar, &mutex);
-    }    
+    }
     task = (uint32_t) pending_tasks.front();
     pending_tasks.pop();
     pthread_mutex_unlock(&mutex);

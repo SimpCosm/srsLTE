@@ -34,24 +34,24 @@
 
 
 namespace srslte {
-    
+
 
 void pdu_queue::init(process_callback *callback_, log* log_h_)
 {
   callback  = callback_;
-  log_h     = log_h_;   
+  log_h     = log_h_;
 }
 
 uint8_t* pdu_queue::request(uint32_t len)
-{  
+{
   if (len > MAX_PDU_LEN) {
     fprintf(stderr, "Error request buffer of invalid size %d. Max bytes %d\n", len, MAX_PDU_LEN);
-    return NULL; 
+    return NULL;
   }
   pdu_t *pdu = pool.allocate("pdu_queue::request");
   if (!pdu) {
     if (log_h) {
-      log_h->error("Not enough buffers for MAC PDU\n");      
+      log_h->error("Not enough buffers for MAC PDU\n");
     }
     fprintf(stderr, "Not enough buffers for MAC PDU\n");
   }
@@ -59,8 +59,8 @@ uint8_t* pdu_queue::request(uint32_t len)
     fprintf(stderr, "Fatal error in memory alignment in struct pdu_queue::pdu_t\n");
     exit(-1);
   }
-  
-  return pdu->ptr; 
+
+  return pdu->ptr;
 }
 
 void pdu_queue::deallocate(uint8_t* pdu)
@@ -70,10 +70,10 @@ void pdu_queue::deallocate(uint8_t* pdu)
   }
 }
 
-/* Demultiplexing of logical channels and dissassemble of MAC CE 
- * This function enqueues the packet and returns quicly because ACK 
- * deadline is important here. 
- */ 
+/* Demultiplexing of logical channels and dissassemble of MAC CE
+ * This function enqueues the packet and returns quicly because ACK
+ * deadline is important here.
+ */
 void pdu_queue::push(uint8_t *ptr, uint32_t len, channel_t channel, uint32_t tstamp)
 {
   if (ptr) {
@@ -105,7 +105,7 @@ bool pdu_queue::process_pdus()
     }
     printf("Warning PDU queue dispatched %d packets\n", cnt);
   }
-  return have_data; 
+  return have_data;
 }
 
 }

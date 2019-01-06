@@ -71,20 +71,6 @@ void s1ap::stop()
   return;
 }
 
-void s1ap::get_metrics(s1ap_metrics_t &m)
-{
-  if(!running) {
-    m.status = S1AP_ERROR;
-    return;
-  }
-  if(mme_connected) {
-    m.status = S1AP_READY;
-  }else{
-    m.status = S1AP_ATTACHING;
-  }
-  return;
-}
-
 void s1ap::run_thread()
 {
   srslte::byte_buffer_t *pdu = pool->allocate("s1ap::run_thread");
@@ -232,7 +218,7 @@ bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_
 
 bool s1ap::user_exists(uint16_t rnti)
 {
-  return ue_ctxt_map.end() != ue_ctxt_map.find(rnti); 
+  return ue_ctxt_map.end() != ue_ctxt_map.find(rnti);
 }
 
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res)
@@ -514,7 +500,7 @@ bool s1ap::handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT *msg)
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
   uint8_t *ptr = msg->UEIdentityIndexValue.buffer;
-  uint32_t ueid = srslte_bit_pack(&ptr, 10); 
+  uint32_t ueid = srslte_bit_pack(&ptr, 10);
 
   rrc->add_paging_id(ueid, msg->UEPagingID);
   return true;

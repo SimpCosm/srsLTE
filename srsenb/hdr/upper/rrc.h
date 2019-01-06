@@ -37,7 +37,6 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "common_enb.h"
-#include "rrc_metrics.h"
 
 #define SRSENB_RRC_ATTACH 0x01
 #define SRSENB_RRC_NORMAL 0x02

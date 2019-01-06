@@ -26,8 +26,8 @@
 
 /******************************************************************************
  *  File:         thread_pool.h
- *  Description:  Implements a pool of threads. Pending tasks to execute are 
- *                identified by a pointer. 
+ *  Description:  Implements a pool of threads. Pending tasks to execute are
+ *                identified by a pointer.
  *  Reference:
  *****************************************************************************/
 
@@ -46,7 +46,7 @@ namespace srslte {
 class thread_pool
 {
 public:
-  
+
   class worker : public thread
   {
   public:
@@ -54,44 +54,44 @@ public:
     void stop();
     uint32_t get_id();
     void release();
-  protected: 
+  protected:
     virtual void work_imp() = 0;
-  private: 
-    uint32_t my_id; 
+  private:
+    uint32_t my_id;
     thread_pool *my_parent;
-    bool running; 
-    void run_thread();  
+    bool running;
+    void run_thread();
     void wait_to_start();
-    void finished();    
+    void finished();
   };
-    
-  
-  thread_pool(uint32_t nof_workers);  
-  void    init_worker(uint32_t id, worker*, uint32_t prio = 0, uint32_t mask = 255);              
+
+
+  thread_pool(uint32_t nof_workers);
+  void    init_worker(uint32_t id, worker*, uint32_t prio = 0, uint32_t mask = 255);
   void    stop();
-  worker* wait_worker();              
-  worker* wait_worker(uint32_t tti);              
+  worker* wait_worker();
+  worker* wait_worker(uint32_t tti);
   worker* wait_worker_nb(uint32_t tti);
-  void    start_worker(worker*);              
-  void    start_worker(uint32_t id);              
+  void    start_worker(worker*);
+  void    start_worker(uint32_t id);
   worker* get_worker(uint32_t id);
   uint32_t get_nof_workers();
-  
+
 
 private:
 
   bool find_finished_worker(uint32_t tti, uint32_t *id);
-  
+
   typedef enum {
-    IDLE, 
+    IDLE,
     START_WORK,
     WORKER_READY,
     WORKING
   }worker_status;
-  
-  std::vector<worker*> workers; 
+
+  std::vector<worker*> workers;
   uint32_t nof_workers;
-  uint32_t max_workers; 
+  uint32_t max_workers;
   bool running;
   pthread_cond_t cvar_queue;
   pthread_mutex_t mutex_queue;
@@ -101,5 +101,5 @@ private:
   std::stack<worker*> available_workers;
 };
 }
-  
+
 #endif // SRSLTE_THREAD_POOL_H
