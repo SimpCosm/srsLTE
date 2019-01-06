@@ -21,7 +21,6 @@
 file(GLOB SOURCES "*.c")
 add_library(srslte_utils STATIC ${SOURCES})
 
-#add_subdirectory(test)
 
 target_include_directories(srslte_utils PUBLIC ${SEC_INCLUDE_DIRS})
 target_link_libraries(srslte_utils ${SEC_LIBRARIES})
