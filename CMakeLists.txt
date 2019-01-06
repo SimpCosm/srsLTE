@@ -132,16 +132,6 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
   find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
 endif(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
 
-# srsGUI
-if(ENABLE_GUI)
-  find_package(SRSGUI)
-  if(SRSGUI_FOUND)
-    add_definitions(-DENABLE_GUI)
-    include_directories(${SRSGUI_INCLUDE_DIRS})
-    link_directories(${SRSGUI_LIBRARY_DIRS})
-  endif(SRSGUI_FOUND)
-endif(ENABLE_GUI)
-
 ########################################################################
 # Install Dirs
 ########################################################################
@@ -181,17 +171,6 @@ endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03")
-
-  find_package(SSE)
-  if (HAVE_AVX2)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
-  else (HAVE_AVX2)
-    if(HAVE_AVX)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
-    elseif(HAVE_SSE)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
-    endif(HAVE_AVX)
-  endif (HAVE_AVX2)
 endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
 ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Werror=incompatible-pointer-types" HAVE_ERROR_INCOMPATIBLE)
@@ -217,33 +196,6 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFORCE_STANDARD_RATE")
   endif (USE_LTE_RATES)
 
-  find_package(SSE)
-  if (HAVE_AVX2)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
-  else (HAVE_AVX2)
-    if(HAVE_AVX)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
-    elseif(HAVE_SSE)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
-    endif(HAVE_AVX)
-  endif (HAVE_AVX2)
-
-  if (HAVE_FMA)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfma -DLV_HAVE_FMA")
-  endif (HAVE_FMA)
-
-  if (HAVE_AVX512)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
-  endif(HAVE_AVX512)
-
-  if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    if(HAVE_SSE)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -funroll-loops")
-    endif(HAVE_SSE)
-  endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-
-  
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
     message(STATUS "have ARM")
@@ -252,10 +204,6 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(HAVE_NEON "False")
   endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
-
- if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
-  message(FATAL_ERROR "no SIMD instructions found")
- endif(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
