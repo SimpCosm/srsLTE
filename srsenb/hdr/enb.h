@@ -46,7 +46,6 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/interfaces/sched_interface.h"
 
 namespace srsenb {
 
